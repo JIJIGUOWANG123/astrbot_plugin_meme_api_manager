@@ -1,0 +1,1140 @@
+{
+    "cmd_main": {
+        "description": "【菜单】总菜单指令",
+        "type": "string",
+        "default": "鸡鸡娱乐系统",
+        "hint": "显示所有功能入口"
+    },
+    "cmd_meme_menu": {
+        "description": "【菜单】接口系统子菜单指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "接口系统",
+        "hint": "显示接口系统的图片 / 视频两个入口"
+    },
+    "cmd_meme_image": {
+        "description": "【接口系统】图片接口列表指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "图片接口",
+        "hint": "只看图片类接口。可加页码：图片接口 2"
+    },
+    "cmd_meme_video": {
+        "description": "【接口系统】视频接口列表指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "视频接口",
+        "hint": "只看视频类接口。可加页码：视频接口 2"
+    },
+    "cmd_mc_menu": {
+        "description": "【菜单】MC系统子菜单指令",
+        "type": "string",
+        "default": "MC系统",
+        "hint": "显示 Minecraft 相关指令"
+    },
+    "cmd_greeting_menu": {
+        "description": "【菜单】打卡系统子菜单指令",
+        "type": "string",
+        "default": "打卡系统",
+        "hint": "显示早安晚安相关指令"
+    },
+    "cmd_checkin_menu": {
+        "description": "【菜单】签到系统子菜单指令",
+        "type": "string",
+        "default": "签到系统",
+        "hint": "显示签到相关指令"
+    },
+    "cmd_daily_menu": {
+        "description": "【菜单】每日系列子菜单指令",
+        "type": "string",
+        "default": "每日系列",
+        "hint": "显示今日运势/老公/人品指令"
+    },
+    "cmd_admin": {
+        "description": "【菜单】管理员菜单指令",
+        "type": "string",
+        "default": "管理员指令",
+        "hint": "显示所有管理员功能"
+    },
+
+    "cmd_list": {
+        "description": "【接口系统】接口列表指令",
+        "type": "string",
+        "default": "表情包列表",
+        "hint": "显示接口规则列表，支持分页"
+    },
+    "cmd_add": {
+        "description": "【接口系统】添加规则指令",
+        "type": "string",
+        "default": "添加表情",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_del": {
+        "description": "【接口系统】删除规则指令",
+        "type": "string",
+        "default": "删除规则",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_save": {
+        "description": "【接口系统】保存规则指令",
+        "type": "string",
+        "default": "保存规则",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "default_key": {
+        "description": "【接口系统】API默认KEY",
+        "type": "string",
+        "default": "dd13536f0b5756d4",
+        "hint": "一般不用修改"
+    },
+    "api_list": {
+        "description": "【接口系统】自定义接口列表",
+        "type": "template_list",
+        "hint": "URL 模板里用 {qq}/{text}/{pic} 作为占位符：{qq}=纯数字或@、{text}=任意文本、{pic}=兼容旧配置不校验",
+        "templates": {
+            "meme_rule": {
+                "name": "接口规则",
+                "hint": "{qq} 接受纯数字或 @某人；{text} 接受任意文本；{pic} 兼容旧配置",
+                "display_item": "keywords",
+                "collapsed": true,
+                "items": {
+                    "keywords": {
+                        "description": "关键词（多个用英文逗号分隔）",
+                        "type": "string",
+                        "default": ""
+                    },
+                    "url_template": {
+                        "description": "URL 模板（无参数接口直接填完整地址）",
+                        "type": "string",
+                        "default": "https://apix.iqfk.top/api/sv1?meme=&key=dd13536f0b5756d4&pic={qq}"
+                    },
+                    "param_count": {
+                        "description": "参数个数（0=无参数接口 / 1 / 2）",
+                        "type": "string",
+                        "default": "1"
+                    },
+                    "media_type": {
+                        "description": "返回类型（image=图片 / video=视频）",
+                        "type": "string",
+                        "default": "image"
+                    },
+                    "json_field": {
+                        "description": "JSON字段（接口返回JSON时媒体地址所在字段，如 data.video）",
+                        "type": "string",
+                        "default": ""
+                    }
+                }
+            }
+        }
+    },
+    "group_block_keywords": {
+        "description": "【接口系统】每群屏蔽关键词",
+        "type": "text",
+        "default": "",
+        "hint": "一行一条，格式：群号: 关键词1,关键词2"
+    },
+
+    "cmd_minecraft": {
+        "description": "【MC系统】Minecraft Java 版本查询指令",
+        "type": "string",
+        "default": "MC版本",
+        "hint": "发送该指令查询最新 Java 正式版 / 测试版"
+    },
+    "cmd_mc_auto": {
+        "description": "【MC系统】切换当前群 MC 自动检测",
+        "type": "string",
+        "default": "MC自动检测",
+        "hint": "管理员/群主/群管用"
+    },
+    "cmd_mc_test": {
+        "description": "【MC系统】手动测试推送指令",
+        "type": "string",
+        "default": "MC测试推送",
+        "hint": "手动拉取最新版本并推送到所有开启 MC 自动检测的群，用于验证推送链路"
+    },
+    "minecraft_enable": {
+        "description": "【MC系统】启用 Minecraft 版本检测",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后 MC 版本检测功能不响应"
+    },
+    "minecraft_check_interval": {
+        "description": "【MC系统】自动检测间隔（秒）",
+        "type": "string",
+        "default": "3600",
+        "hint": "0 表示不自动检测"
+    },
+    "minecraft_auto_groups": {
+        "description": "【MC系统】已开启 MC 自动检测推送的群号（一行一个）",
+        "type": "text",
+        "default": "",
+        "hint": "管理员可在群里发「MC自动检测」开启/关闭本群"
+    },
+    "minecraft_test_groups": {
+        "description": "【MC系统】MC测试推送指定群（一行一个）",
+        "type": "text",
+        "default": "",
+        "hint": "只推送给这里填的群。留空则推送给所有已开启自动检测的群"
+    },
+
+    "cmd_greeting_morning": {
+        "description": "【打卡系统】早安指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "早安,早上好,起床",
+        "hint": "记录起床时间，可自定义多个触发词"
+    },
+    "cmd_greeting_night": {
+        "description": "【打卡系统】晚安指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "晚安,睡觉,睡了",
+        "hint": "记录睡觉时间，可自定义多个触发词"
+    },
+    "cmd_greeting_rank": {
+        "description": "【打卡系统】打卡排行榜指令",
+        "type": "string",
+        "default": "打卡排行",
+        "hint": "所有人可用。显示次数榜和时间榜各前十"
+    },
+    "cmd_greeting_stats": {
+        "description": "【打卡系统】打卡统计指令",
+        "type": "string",
+        "default": "打卡统计",
+        "hint": "不跟参数查自己，可跟 @某人 或 QQ号 查他人。显示早安/晚安累计、连续打卡、累计打卡"
+    },
+    "greeting_enable": {
+        "description": "【打卡系统】启用早安晚安",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后早安晚安不响应"
+    },
+    "greeting_time_format": {
+        "description": "【打卡系统】时长显示格式",
+        "type": "string",
+        "default": "hms",
+        "hint": "hms=几时几分几秒 / seconds=多少秒"
+    },
+    "greeting_min_awake_seconds": {
+        "description": "【打卡系统】打晚安前最少需要清醒的秒数（0=无要求）",
+        "type": "string",
+        "default": "0",
+        "hint": "例如 3600 表示起床后至少 1 小时才能打晚安"
+    },
+    "greeting_max_repeat_remind": {
+        "description": "【打卡系统】重复打卡最多提醒次数（0=无限次）",
+        "type": "string",
+        "default": "0",
+        "hint": "超过此次数后静默不回复。0 表示每次都提醒"
+    },
+    "greeting_day_start_hour": {
+        "description": "【打卡系统】打卡逻辑一天起始小时（最小强制6）",
+        "type": "string",
+        "default": "6",
+        "hint": "每天6点重置早晚安打卡周期，不能小于6"
+    },
+    "greeting_morning_cutoff_hour": {
+        "description": "【打卡系统】早安打卡截止小时（超过此小时打早安不算起床）",
+        "type": "string",
+        "default": "12",
+        "hint": "例如填12，则 00:00–11:59 可以打早安，12:00 及以后打早安会被拒绝。默认 12"
+    },
+    "greeting_night_cutoff_hour": {
+        "description": "【打卡系统】晚安打卡截止小时",
+        "type": "string",
+        "default": "23",
+        "hint": "超过该小时不能打晚安，默认23"
+    },
+    "greeting_night_cutoff_minute": {
+        "description": "【打卡系统】晚安打卡截止分钟",
+        "type": "string",
+        "default": "59",
+        "hint": "默认23点59分后禁止晚安打卡"
+    },
+    "greeting_morning_messages": {
+        "description": "【打卡系统】起床提示语（按时间段）",
+        "type": "template_list",
+        "hint": "start_hour 到 end_hour 之间使用该提示语",
+        "templates": {
+            "greeting_morning_item": {
+                "name": "起床提示语",
+                "display_item": "start_hour",
+                "collapsed": true,
+                "items": {
+                    "start_hour": {
+                        "description": "起始小时(0-23)",
+                        "type": "string",
+                        "default": "0"
+                    },
+                    "end_hour": {
+                        "description": "结束小时(1-24)",
+                        "type": "string",
+                        "default": "6"
+                    },
+                    "message": {
+                        "description": "提示语",
+                        "type": "text",
+                        "default": ""
+                    }
+                }
+            }
+        }
+    },
+    "greeting_night_messages": {
+        "description": "【打卡系统】睡觉提示语（按时间段）",
+        "type": "template_list",
+        "hint": "start_hour 到 end_hour 之间使用该提示语",
+        "templates": {
+            "greeting_night_item": {
+                "name": "睡觉提示语",
+                "display_item": "start_hour",
+                "collapsed": true,
+                "items": {
+                    "start_hour": {
+                        "description": "起始小时(0-23)",
+                        "type": "string",
+                        "default": "0"
+                    },
+                    "end_hour": {
+                        "description": "结束小时(1-24)",
+                        "type": "string",
+                        "default": "6"
+                    },
+                    "message": {
+                        "description": "提示语",
+                        "type": "text",
+                        "default": ""
+                    }
+                }
+            }
+        }
+    },
+
+    "checkin_enable": {
+        "description": "【签到系统】启用每日签到",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后签到指令不响应"
+    },
+    "checkin_trigger_names": {
+        "description": "【签到系统】每日签到指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "签到",
+        "hint": "任意一个都能触发，每天每人一次"
+    },
+    "checkin_rank_trigger_names": {
+        "description": "【签到系统】签到排行指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "签到排行",
+        "hint": "任意一个都能触发"
+    },
+    "checkin_info_trigger_names": {
+        "description": "【签到系统】签到统计指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "签到统计,我的签到,查询签到",
+        "hint": "任意一个都能触发。不跟参数=查自己；@某人 或 加QQ号=查别人"
+    },
+    "checkin_group_mode": {
+        "description": "【签到系统】签到群黑白名单模式",
+        "type": "string",
+        "default": "off",
+        "hint": "off / whitelist / blacklist"
+    },
+    "checkin_group_whitelist": {
+        "description": "【签到系统】签到群白名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+    "checkin_group_blacklist": {
+        "description": "【签到系统】签到群黑名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+
+    "steal_enable": {
+        "description": "【签到系统-偷积分】启用偷积分功能",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后偷积分指令不响应"
+    },
+    "steal_trigger_names": {
+        "description": "【签到系统-偷积分】触发词（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "偷积分,偷分",
+        "hint": "任意一个都能触发。用法：偷积分 @某人 / QQ号"
+    },
+    "steal_min": {
+        "description": "【签到系统-偷积分】偷取积分最小值",
+        "type": "string",
+        "default": "1",
+        "hint": "成功时从对方身上偷走的最少积分"
+    },
+    "steal_max": {
+        "description": "【签到系统-偷积分】偷取积分最大值",
+        "type": "string",
+        "default": "100",
+        "hint": "成功时从对方身上偷走的最多积分"
+    },
+    "steal_success_rate": {
+        "description": "【签到系统-偷积分】偷取成功概率（%）",
+        "type": "string",
+        "default": "50",
+        "hint": "0-100，默认 50 表示一半概率成功"
+    },
+    "steal_fail_punish_rate": {
+        "description": "【签到系统-偷积分】偷取失败时被对方反拿的概率（%）",
+        "type": "string",
+        "default": "50",
+        "hint": "0-100，失败后有一定概率被对方拿走自己的积分"
+    },
+    "steal_punish_min": {
+        "description": "【签到系统-偷积分】失败被反拿积分最小值",
+        "type": "string",
+        "default": "1",
+        "hint": "被对方反拿走的最少积分"
+    },
+    "steal_punish_max": {
+        "description": "【签到系统-偷积分】失败被反拿积分最大值",
+        "type": "string",
+        "default": "100",
+        "hint": "被对方反拿走的最多积分"
+    },
+
+    "bank_enable": {
+        "description": "【签到系统-银行】启用银行功能",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后银行指令不响应"
+    },
+    "bank_trigger_names": {
+        "description": "【签到系统-银行】银行信息触发词（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "银行,我的银行",
+        "hint": "查看银行余额和总资产"
+    },
+    "bank_deposit_names": {
+        "description": "【签到系统-银行】存钱触发词（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "存钱,存款",
+        "hint": "用法：存钱 100 / 存钱 all"
+    },
+    "bank_withdraw_names": {
+        "description": "【签到系统-银行】取钱触发词（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "取钱,取款",
+        "hint": "用法：取钱 100 / 取钱 all"
+    },
+    "bank_interest_rate": {
+        "description": "【签到系统-银行】银行日利率（小数）",
+        "type": "string",
+        "default": "0.01",
+        "hint": "0.01 = 1%，每天结算一次利息，向下取整"
+    },
+    "bank_interest_hour": {
+        "description": "【签到系统-银行】利息结算小时（0-23）",
+        "type": "string",
+        "default": "0",
+        "hint": "每天该小时后的首次触发会结算利息，默认 0 点"
+    },
+    "mount_enable": {
+        "description": "【签到系统-坐骑】启用坐骑功能",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后坐骑指令不响应"
+    },
+    "mount_trigger_names": {
+        "description": "【签到系统-坐骑】查看坐骑指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "坐骑,我的坐骑",
+        "hint": "查看已拥有坐骑和当前骑乘"
+    },
+    "mount_list_trigger_names": {
+        "description": "【签到系统-坐骑】坐骑商店指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "坐骑列表,坐骑商店",
+        "hint": "查看可购买的坐骑列表"
+    },
+    "mount_buy_trigger_names": {
+        "description": "【签到系统-坐骑】购买坐骑指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "购买坐骑,买坐骑",
+        "hint": "用法：购买坐骑 坐骑名"
+    },
+    "cmd_mount_add_names": {
+        "description": "【签到系统-坐骑】添加坐骑指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "添加坐骑,新增坐骑",
+        "hint": "管理员用。格式：添加坐骑 坐骑名 | 价格 | 描述"
+    },
+    "cmd_mount_del_names": {
+        "description": "【签到系统-坐骑】删除坐骑指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "删除坐骑,删坐骑",
+        "hint": "管理员用。格式：删除坐骑 坐骑名或序号"
+    },
+    "mount_list": {
+        "description": "【签到系统-坐骑】坐骑列表",
+        "type": "template_list",
+        "hint": "管理员可在此添加坐骑；用户用积分购买",
+        "templates": {
+            "mount_item": {
+                "name": "坐骑条目",
+                "display_item": "name",
+                "collapsed": true,
+                "items": {
+                    "name": {
+                        "description": "坐骑名称",
+                        "type": "string",
+                        "default": ""
+                    },
+                    "price": {
+                        "description": "价格（积分）",
+                        "type": "string",
+                        "default": "1000"
+                    },
+                    "desc": {
+                        "description": "坐骑描述",
+                        "type": "text",
+                        "default": ""
+                    }
+                }
+            }
+        }
+    },
+    "job_enable": {
+        "description": "【签到系统-打工】启用打工功能",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后打工指令不响应"
+    },
+    "job_trigger_names": {
+        "description": "【签到系统-打工】打工指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "打工,干活",
+        "hint": "用法：打工 工种名。只发「打工」显示工种列表"
+    },
+    "job_info_trigger_names": {
+        "description": "【签到系统-打工】打工列表指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "打工列表,工作列表,工种",
+        "hint": "查看可用工种和收益"
+    },
+    "job_list": {
+        "description": "【签到系统-打工】工种列表",
+        "type": "template_list",
+        "hint": "每个工种设置冷却时长（小时）和收益范围",
+        "templates": {
+            "job_item": {
+                "name": "工种条目",
+                "display_item": "name",
+                "collapsed": true,
+                "items": {
+                    "name": {
+                        "description": "工种名称",
+                        "type": "string",
+                        "default": ""
+                    },
+                    "duration_hours": {
+                        "description": "冷却时长（小时）",
+                        "type": "string",
+                        "default": "1"
+                    },
+                    "reward_min": {
+                        "description": "最少收益",
+                        "type": "string",
+                        "default": "10"
+                    },
+                    "reward_max": {
+                        "description": "最多收益",
+                        "type": "string",
+                        "default": "100"
+                    }
+                }
+            }
+        }
+    },
+    "cmd_job_add_names": {
+        "description": "【签到系统-打工】添加工种指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "添加工种,新增工种",
+        "hint": "管理员用。格式：添加工种 工种名 | 冷却小时 | 最少收益 | 最多收益"
+    },
+    "cmd_job_del_names": {
+        "description": "【签到系统-打工】删除工种指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "删除工种,删工种",
+        "hint": "管理员用。格式：删除工种 工种名或序号"
+    },
+    "fortune_trigger_names": {
+        "description": "【每日系列】今日运势触发词（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "今日运势,运势,抽签",
+        "hint": "任意一个都能触发，每天每人一次"
+    },
+    "fortune_enable": {
+        "description": "【每日系列】启用每日运势",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后运势触发词不再响应"
+    },
+    "fortune_list": {
+        "description": "【每日系列】每日运势内容列表",
+        "type": "template_list",
+        "hint": "点击【添加条目】新增一条运势",
+        "templates": {
+            "fortune_item": {
+                "name": "运势条目",
+                "hint": "一条完整的运势信息",
+                "display_item": "fortune",
+                "collapsed": true,
+                "items": {
+                    "fortune": {
+                        "description": "运势（如：凶、吉、大吉、中吉）",
+                        "type": "string",
+                        "default": ""
+                    },
+                    "stars": {
+                        "description": "星级（如：★★★☆☆☆☆）",
+                        "type": "string",
+                        "default": ""
+                    },
+                    "title": {
+                        "description": "签文（一句话运势）",
+                        "type": "string",
+                        "default": ""
+                    },
+                    "desc": {
+                        "description": "解签（详细说明）",
+                        "type": "string",
+                        "default": ""
+                    }
+                }
+            }
+        }
+    },
+    "fortune_group_mode": {
+        "description": "【每日系列】运势群黑白名单模式",
+        "type": "string",
+        "default": "off",
+        "hint": "off / whitelist / blacklist"
+    },
+    "fortune_group_whitelist": {
+        "description": "【每日系列】运势群白名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+    "fortune_group_blacklist": {
+        "description": "【每日系列】运势群黑名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+
+    "husband_trigger_names": {
+        "description": "【每日系列】今日老公触发词（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "今日老公,老公",
+        "hint": "任意一个都能触发，每天每人一次"
+    },
+    "husband_enable": {
+        "description": "【每日系列】启用今日老公",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后老公触发词不再响应"
+    },
+    "husband_group_mode": {
+        "description": "【每日系列】老公群黑白名单模式",
+        "type": "string",
+        "default": "off",
+        "hint": "off / whitelist / blacklist"
+    },
+    "husband_group_whitelist": {
+        "description": "【每日系列】老公群白名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+    "husband_group_blacklist": {
+        "description": "【每日系列】老公群黑名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+
+    "luck_trigger_names": {
+        "description": "【每日系列】今日人品触发词（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "今日人品",
+        "hint": "任意一个都能触发，每天每人一次"
+    },
+    "luck_enable": {
+        "description": "【每日系列】启用今日人品",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后人品触发词不再响应"
+    },
+    "luck_group_mode": {
+        "description": "【每日系列】人品群黑白名单模式",
+        "type": "string",
+        "default": "off",
+        "hint": "off / whitelist / blacklist"
+    },
+    "luck_group_whitelist": {
+        "description": "【每日系列】人品群白名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+    "luck_group_blacklist": {
+        "description": "【每日系列】人品群黑名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+
+    "cmd_status": {
+        "description": "【管理系统】查看运行状态指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "电脑状态,运行状态,服务器状态",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_status_title": {
+        "description": "【电脑状态】回复标题",
+        "type": "string",
+        "default": "======机器人运行状态======",
+        "hint": "显示在电脑状态最上方的一行标题"
+    },
+    "cmd_status_tail": {
+        "description": "【电脑状态】回复末尾附加提示",
+        "type": "text",
+        "default": "",
+        "hint": "会追加在电脑状态最后，支持多行。留空则不加"
+    },
+    "cmd_status_show_basic": {
+        "description": "【电脑状态】显示基础信息（群号/QQ/版本/消息数/时间）",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后不显示群号、机器人QQ、版本、消息统计、北京时间"
+    },
+    "cmd_status_show_uptime": {
+        "description": "【电脑状态】显示电脑开机时长",
+        "type": "bool",
+        "default": true,
+        "hint": "需要安装 psutil"
+    },
+    "cmd_status_show_cpu": {
+        "description": "【电脑状态】显示 CPU 详细数据",
+        "type": "bool",
+        "default": true,
+        "hint": "占用率 / 分核 / 频率 / 核心数 / 负载"
+    },
+    "cmd_status_show_mem": {
+        "description": "【电脑状态】显示内存数据",
+        "type": "bool",
+        "default": true,
+        "hint": "物理内存 + 交换分区"
+    },
+    "cmd_status_show_disk": {
+        "description": "【电脑状态】显示磁盘数据",
+        "type": "bool",
+        "default": true,
+        "hint": "最多显示 4 个磁盘，避免刷屏"
+    },
+    "daily_status_push_enable": {
+        "description": "【每日状态推送】总开关",
+        "type": "bool",
+        "default": false,
+        "hint": "打开后，已开启推送的群会在设定时间收到机器人运行状态"
+    },
+    "daily_status_push_time": {
+        "description": "【每日状态推送】全局默认推送时间",
+        "type": "string",
+        "default": "09:00",
+        "hint": "24 小时制 HH:MM（分钟级），例如 09:00、21:30；单个群可用指令单独改时间"
+    },
+    "daily_status_push_interval": {
+        "description": "【每日状态推送】后台检查间隔（秒）",
+        "type": "string",
+        "default": "30",
+        "hint": "默认 30 秒检查一次，最小 10 秒，一般不用改"
+    },
+    "cmd_daily_push_on": {
+        "description": "【每日状态推送】开启推送指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送开",
+        "hint": "可带群号远程开启：状态推送开 123456"
+    },
+    "cmd_daily_push_off": {
+        "description": "【每日状态推送】关闭推送指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送关",
+        "hint": "可带群号远程关闭：状态推送关 123456"
+    },
+    "cmd_daily_push_time": {
+        "description": "【每日状态推送】设置推送时间指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送时间",
+        "hint": "用法：状态推送时间 09:00 或 状态推送时间 群号 09:00；不带参数则查询"
+    },
+    "cmd_daily_push_list": {
+        "description": "【每日状态推送】查看推送列表指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送列表",
+        "hint": "显示总开关、默认时间与各群推送时间"
+    },
+    "daily_news_enable": {
+        "description": "【每日读报】总开关",
+        "type": "bool",
+        "default": false,
+        "hint": "打开后，已开启读报的群会在设定时间收到 60s 读报"
+    },
+    "daily_news_time": {
+        "description": "【每日读报】全局默认推送时间",
+        "type": "string",
+        "default": "08:00",
+        "hint": "24 小时制，支持整点（8）或精确到分钟（08:30）；单个群可用指令单独改时间"
+    },
+    "daily_news_interval": {
+        "description": "【每日读报】后台检查间隔（秒）",
+        "type": "string",
+        "default": "30",
+        "hint": "默认 30 秒检查一次，最小 10 秒，一般不用改"
+    },
+    "cmd_daily_news": {
+        "description": "【每日读报】手动读报指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "每日读报",
+        "hint": "所有人可用。发送后立即获取并发送今日 60s 读报"
+    },
+    "cmd_daily_news_on": {
+        "description": "【每日读报】开启推送指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "读报推送开",
+        "hint": "可带群号远程开启：读报推送开 123456"
+    },
+    "cmd_daily_news_off": {
+        "description": "【每日读报】关闭推送指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "读报推送关",
+        "hint": "可带群号远程关闭：读报推送关 123456"
+    },
+    "cmd_daily_news_time": {
+        "description": "【每日读报】设置推送时间指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "读报推送时间",
+        "hint": "用法：读报推送时间 08:00 或 读报推送时间 群号 08:00；不带参数则查询"
+    },
+    "cmd_daily_news_list": {
+        "description": "【每日读报】查看推送列表指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "读报推送列表",
+        "hint": "显示总开关、默认时间与各群推送时间"
+    },
+    "cmd_enable": {
+        "description": "【管理系统】开启本群娱乐系统指令",
+        "type": "string",
+        "default": "娱乐系统开",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_disable": {
+        "description": "【管理系统】关闭本群娱乐系统指令",
+        "type": "string",
+        "default": "娱乐系统关",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_enable_feature": {
+        "description": "【管理系统】开启单个功能指令",
+        "type": "string",
+        "default": "开启功能",
+        "hint": "格式：开启功能 运势"
+    },
+    "cmd_disable_feature": {
+        "description": "【管理系统】关闭单个功能指令",
+        "type": "string",
+        "default": "关闭功能",
+        "hint": "格式：关闭功能 运势"
+    },
+    "cmd_feature_status": {
+        "description": "【管理系统】查看功能开关状态指令",
+        "type": "string",
+        "default": "功能状态",
+        "hint": "只显示当前群（或指定群）的开关，默认全部开启"
+    },
+    "must_at_bot": {
+        "description": "【管理系统】全局默认：必须艾特机器人才触发所有功能",
+        "type": "bool",
+        "default": false,
+        "hint": "作为每个群的默认值；可在群里用「必须艾特开 / 必须艾特关」单独覆盖"
+    },
+    "cmd_must_at_bot_on": {
+        "description": "【管理系统】开启「必须艾特机器人」指令",
+        "type": "string",
+        "default": "必须艾特开",
+        "hint": "格式：必须艾特开 [群号]，不跟群号=当前群"
+    },
+    "cmd_must_at_bot_off": {
+        "description": "【管理系统】关闭「必须艾特机器人」指令",
+        "type": "string",
+        "default": "必须艾特关",
+        "hint": "格式：必须艾特关 [群号]，不跟群号=当前群"
+    },
+    "cmd_must_at_bot_status": {
+        "description": "【管理系统】查看「必须艾特机器人」状态指令",
+        "type": "string",
+        "default": "必须艾特状态",
+        "hint": "格式：必须艾特状态 [群号]"
+    },
+    "cmd_view_admin": {
+        "description": "【管理系统】查看当前管理员指令",
+        "type": "string",
+        "default": "查看管理员",
+        "hint": "所有人可用"
+    },
+    "cmd_refresh_admin": {
+        "description": "【管理系统】刷新本群群管缓存指令",
+        "type": "string",
+        "default": "刷新群管",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_add_admin": {
+        "description": "【管理系统】添加插件专属管理员指令",
+        "type": "string",
+        "default": "加管理员",
+        "hint": "格式：加管理员 QQ号"
+    },
+    "cmd_del_admin": {
+        "description": "【管理系统】删除插件专属管理员指令",
+        "type": "string",
+        "default": "删管理员",
+        "hint": "格式：删管理员 QQ号"
+    },
+    "cmd_admin_list": {
+        "description": "【管理系统】查看插件专属管理员列表指令",
+        "type": "string",
+        "default": "管理员列表",
+        "hint": "所有人可用"
+    },
+    "plugin_admins": {
+        "description": "【管理系统】插件专属管理员 QQ 列表（一行一个）",
+        "type": "text",
+        "default": "",
+        "hint": "与 AstrBot 全局管理员、本群群主/管理员并列生效"
+    },
+    "group_admin_cache_ttl": {
+        "description": "【管理系统】群管识别缓存时长（秒）",
+        "type": "string",
+        "default": "600",
+        "hint": "默认 10 分钟。设为 0 表示每次都重新拉取"
+    },
+    "moderation_enable": {
+        "description": "【群员管理】启用踢出 / 禁言 / 拉黑功能",
+        "type": "bool",
+        "default": true,
+        "hint": "需要机器人是群主或管理员才能执行踢人/禁言"
+    },
+    "mute_duration": {
+        "description": "【群员管理】默认禁言时长（秒）",
+        "type": "string",
+        "default": "600",
+        "hint": "指令里不填秒数时使用，最小 60 秒"
+    },
+    "blacklist_default_action": {
+        "description": "【群员管理】拉黑时不填动作的默认处理",
+        "type": "string",
+        "default": "ignore",
+        "hint": "kick=再发言就踢出 / mute=再发言就禁言 / ignore=无视其指令"
+    },
+    "member_blacklist": {
+        "description": "【群员管理】成员黑名单（一行一条）",
+        "type": "text",
+        "default": "",
+        "hint": "格式：QQ号:动作，动作可填 kick / mute / ignore，不填用上面的默认动作。例：123456:mute"
+    },
+    "cmd_kick": {
+        "description": "【群员管理】踢出群员指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "踢出群员",
+        "hint": "用法：踢出群员 @某人 或 踢出群员 QQ号"
+    },
+    "cmd_mute": {
+        "description": "【群员管理】禁言群员指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "禁言群员",
+        "hint": "用法：禁言群员 @某人 [秒数]，不填秒数用默认时长"
+    },
+    "cmd_unmute": {
+        "description": "【群员管理】解除禁言指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "解除禁言",
+        "hint": "用法：解除禁言 @某人"
+    },
+    "cmd_blacklist": {
+        "description": "【群员管理】拉黑成员指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "拉黑成员",
+        "hint": "用法：拉黑成员 @某人 [kick|mute|ignore]"
+    },
+    "cmd_unblacklist": {
+        "description": "【群员管理】解除拉黑指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "解除拉黑",
+        "hint": "用法：解除拉黑 @某人 或 解除拉黑 QQ号"
+    },
+    "cmd_blacklist_list": {
+        "description": "【群员管理】黑名单列表指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "黑名单列表",
+        "hint": "查看当前黑名单与各自的动作"
+    },
+    "group_mode": {
+        "description": "【管理系统】群黑白名单模式",
+        "type": "string",
+        "default": "off",
+        "hint": "off / whitelist / blacklist"
+    },
+    "group_whitelist": {
+        "description": "【管理系统】群白名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+    "group_blacklist": {
+        "description": "【管理系统】群黑名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+    "disabled_groups": {
+        "description": "【管理系统】已关闭娱乐系统的群号",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+
+    "hourly_chime_enable": {
+        "description": "【管理系统-整点报时】启用整点报时",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后所有群的整点报时都不推送"
+    },
+    "hourly_chime_interval": {
+        "description": "【管理系统-整点报时】轮询间隔（秒）",
+        "type": "string",
+        "default": "30",
+        "hint": "建议 15-60，最小 5"
+    },
+    "hourly_chime_template": {
+        "description": "【管理系统-整点报时】默认报时文案",
+        "type": "string",
+        "default": "🕐 现在是 {hour} 点整，整点报时！",
+        "hint": "可用 {hour} 占位符，群内可用「整点报时文案」覆盖"
+    },
+    "cmd_chime_on": {
+        "description": "【管理系统-整点报时】开启指令",
+        "type": "string",
+        "default": "整点报时开",
+        "hint": "格式：整点报时开 [群号]，不跟群号=当前群"
+    },
+    "cmd_chime_off": {
+        "description": "【管理系统-整点报时】关闭指令",
+        "type": "string",
+        "default": "整点报时关",
+        "hint": "格式：整点报时关 [群号]，不跟群号=当前群"
+    },
+    "cmd_chime_status": {
+        "description": "【管理系统-整点报时】查看状态指令",
+        "type": "string",
+        "default": "整点报时状态",
+        "hint": "格式：整点报时状态 [群号]"
+    },
+    "cmd_chime_hours": {
+        "description": "【管理系统-整点报时】设置报时时段指令",
+        "type": "string",
+        "default": "整点报时时段",
+        "hint": "格式：整点报时时段 8,12,20；整点报时时段 all 恢复全部"
+    },
+    "cmd_chime_text": {
+        "description": "【管理系统-整点报时】设置报时文案指令",
+        "type": "string",
+        "default": "整点报时文案",
+        "hint": "格式：整点报时文案 自定义文案（可用 {hour} 占位符）"
+    },
+    "cmd_chime_list": {
+        "description": "【管理系统-整点报时】查看开启列表指令",
+        "type": "string",
+        "default": "整点报时列表",
+        "hint": "管理员可用"
+    },
+    "cmd_chime_test": {
+        "description": "【管理系统-整点报时】手动测试推送指令",
+        "type": "string",
+        "default": "整点报时测试",
+        "hint": "格式：整点报时测试 [群号]，不跟群号=当前群。用于立即验证推送链路是否正常"
+    },
+
+    "cmd_word_add": {
+        "description": "【词库系统】添加词库指令",
+        "type": "string",
+        "default": "加词",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_word_del": {
+        "description": "【词库系统】删除词库指令",
+        "type": "string",
+        "default": "删词",
+        "hint": "管理员/群主/群管/插件专属管理员用"
+    },
+    "cmd_word_list": {
+        "description": "【词库系统】查看词库列表指令",
+        "type": "string",
+        "default": "词库列表",
+        "hint": "所有人可用"
+    },
+    "word_reply_enable": {
+        "description": "【词库系统】启用自定义词库回复",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后词库不再响应"
+    },
+    "word_reply_list": {
+        "description": "【词库系统】自定义词库列表",
+        "type": "template_list",
+        "hint": "关键词命中就回复对应内容。关键词必须在句首",
+        "templates": {
+            "word_reply_item": {
+                "name": "词库条目",
+                "hint": "关键词 + 回复内容",
+                "display_item": "keywords",
+                "collapsed": true,
+                "items": {
+                    "keywords": {
+                        "description": "关键词（多个用英文逗号分隔）",
+                        "type": "string",
+                        "default": ""
+                    },
+                    "reply": {
+                        "description": "回复内容（支持换行）",
+                        "type": "text",
+                        "default": ""
+                    }
+                }
+            }
+        }
+    },
+    "word_reply_group_mode": {
+        "description": "【词库系统】词库群黑白名单模式",
+        "type": "string",
+        "default": "off",
+        "hint": "off / whitelist / blacklist"
+    },
+    "word_reply_group_whitelist": {
+        "description": "【词库系统】词库群白名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    },
+    "word_reply_group_blacklist": {
+        "description": "【词库系统】词库群黑名单",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号"
+    }
+}

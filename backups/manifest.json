@@ -1,0 +1,66 @@
+{
+  "plugin": "astrbot_plugin_meme_api_manager",
+  "backup_time": "2026-10-01 20:00:55",
+  "source_dir": "/fake",
+  "backup_dir": "backups",
+  "file_count": 0,
+  "total_bytes": 0,
+  "files": [],
+  "skipped": [
+    {
+      "label": "插件配置",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_config.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "每日运势",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_fortune.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "今日老公",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_husband.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "今日人品",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_luck.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "打卡记录",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_greeting.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "MC 版本检测",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_minecraft.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "签到数据",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_checkin.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "整点报时",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_hourly_chime.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "状态推送",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_status_push.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "每日读报",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_daily_news.json",
+      "reason": "文件不存在"
+    },
+    {
+      "label": "昵称缓存",
+      "path": "/fake/root\\data\\config\\astrbot_plugin_meme_api_manager_nickname.json",
+      "reason": "文件不存在"
+    }
+  ]
+}
