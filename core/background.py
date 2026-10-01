@@ -126,11 +126,12 @@ async def hourly_chime_checker(plugin):
 
 async def daily_status_push_checker(plugin):
     """
-    每日定时状态推送循环。
-    每分钟检查一次：命中群设置的 HH:MM 且今日未推送过，则推送一次机器人运行状态。
+    定时状态推送循环（按分钟间隔）。
+    每分钟检查一次：某个群距离上次推送已满一个间隔，就推一次机器人运行状态。
+    推送群与间隔由后台配置决定；留空时沿用群里指令设置的群（原有行为）。
     """
     await asyncio.sleep(45)
-    logger.info("[status_push] 每日状态推送循环启动")
+    logger.info("[status_push] 定时状态推送循环启动")
     while True:
         try:
             module = plugin.status_push_module
@@ -138,47 +139,43 @@ async def daily_status_push_checker(plugin):
                 await asyncio.sleep(60)
                 continue
 
-            now = datetime.datetime.now()
-            # 整分钟附近才判定，避免跨越分钟导致重复/遗漏
-            if now.second > 50:
-                await asyncio.sleep(5)
-                continue
-
-            hhmm = now.strftime("%H:%M")
+            # 每轮检查一次有哪些群到了推送时间（原子标记，避免重复推）
             for gid in module.get_all_group_ids():
-                # 原子判定：开关 + 时间命中 + 今日未推送，并标记
-                if not module.check_and_mark(gid, hhmm):
+                if not module.check_and_mark(gid):
                     continue
-
-                try:
-                    from .system_status import collect_runtime_status
-                    text = collect_runtime_status(
-                        event=None,
-                        group_id=gid,
-                        cfg=plugin._read_disk_config() or {},
-                    )
-                except Exception:
-                    logger.exception(f"[status_push] 群 {gid} 生成状态文本失败")
-                    continue
-
-                umo = module.get_umo(gid)
-                ok = await plugin._push_mc_notification(gid, text, umo=umo)
+                iv = module.get_group_interval(gid)
+                ok = await _push_status_to_group(plugin, module, gid)
                 if ok:
-                    logger.info(f"[status_push] 群 {gid} {hhmm} 运行状态已推送")
+                    logger.info(f"[status_push] 群 {gid} 运行状态已推送（间隔 {iv} 分钟）")
                 else:
                     logger.warning(
-                        f"[status_push] 群 {gid} {hhmm} 推送失败，"
-                        f"可能尚未记录 UMO，等本群下次发言后自动记录。"
-                        f"（已标记为今日已推送，不再重复尝试）"
+                        f"[status_push] 群 {gid} 推送失败，"
+                        f"可能尚未记录 UMO，等本群下次发言后自动记录"
                     )
 
-            await asyncio.sleep(max(10, module.interval))
+            await asyncio.sleep(60)
         except asyncio.CancelledError:
-            logger.info("[status_push] 每日状态推送任务被取消")
+            logger.info("[status_push] 状态推送任务被取消")
             raise
         except Exception:
-            logger.exception("[status_push] 每日状态推送循环异常")
+            logger.exception("[status_push] 状态推送循环异常")
             await asyncio.sleep(120)
+
+
+async def _push_status_to_group(plugin, module, gid) -> bool:
+    """生成并推送一次电脑状态文本。"""
+    try:
+        from .system_status import collect_runtime_status
+        text = collect_runtime_status(
+            event=None,
+            group_id=gid,
+            cfg=plugin._read_disk_config() or {},
+        )
+    except Exception:
+        logger.exception(f"[status_push] 群 {gid} 生成状态文本失败")
+        return False
+    umo = module.get_umo(gid)
+    return await plugin._push_mc_notification(gid, text, umo=umo)
 
 
 async def daily_news_checker(plugin):

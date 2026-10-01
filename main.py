@@ -13,16 +13,16 @@ from astrbot.api.message_components import At, Plain, Image, Video
 from aiohttp import web
 
 def _with_cors(resp: web.Response) -> web.Response:
-    """给响应增加CORS跨域头，解决浏览器跨域拦截"""
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type,Accept"
-    resp.headers["Access-Control-Max-Age"] = "86400"
+    """
+    已不再下发任何 CORS 放行头。
+    页面与接口都由 AstrBot 面板同源访问，放开跨域只会扩大攻击面，
+    因此这里只原样返回响应（函数名保留以兼容既有调用）。
+    """
     return resp
 
 async def _options_handler(request):
-    """处理浏览器OPTIONS预检请求（跨域必须）"""
-    return _with_cors(web.Response(status=204))
+    """处理浏览器 OPTIONS 预检：只回 204，不附带任何 CORS 放行头"""
+    return web.Response(status=204)
 
 
 async def _fetch_daily_news_text() -> str:
@@ -63,6 +63,8 @@ try:
         parse_group_block_keywords,
         is_group_allowed,
         is_keyword_blocked,
+        parse_gid_whitelist,
+        group_allowed,
     )
     _HAS_FILTER = True
 except Exception as e:
@@ -72,6 +74,8 @@ except Exception as e:
     def parse_group_block_keywords(raw): return {}
     def is_group_allowed(g, m, w, b): return True
     def is_keyword_blocked(g, k, mp): return False
+    def parse_gid_whitelist(raw): return []
+    def group_allowed(g, allowed): return True
 
 try:
     from .core.fortune import FortuneModule
@@ -191,11 +195,12 @@ except Exception as e:
     def write_config(data): return False
 
 try:
-    from .core.status_push import StatusPushModule
+    from .core.status_push import StatusPushModule, fmt_seconds
     _HAS_STATUS_PUSH = True
 except Exception as e:
     _HAS_STATUS_PUSH = False
     StatusPushModule = None
+    def fmt_seconds(sec): return "—"
     logger.warning(f"[apix-meme] status_push 模块加载失败: {e}")
 
 try:
@@ -364,7 +369,7 @@ from .core.nickname import NicknameCache
 @register(
     PLUGIN_ID,
     "鸡鸡娱乐系统",
-    "接口系统 + 每日运势 + 今日老公 + 今日人品 + 早安晚安 + Minecraft Java版检测 + 电脑状态 + 每日定时状态推送 + 每日读报 + 自定义词库 + 早晚安打卡排行 + 每日签到 + 偷积分 + 银行系统 + 坐骑商店 + 打工系统 + 整点报时 + 简约菜单系统",
+    "接口系统 + 每日运势 + 今日老公 + 今日人品 + 早安晚安 + Minecraft Java版检测 + 电脑状态 + 定时状态推送 + 每日读报 + 自定义词库 + 早晚安打卡排行 + 每日签到 + 偷积分 + 银行系统 + 坐骑商店 + 打工系统 + 整点报时 + 群员管理 + 数据备份 + 简约菜单系统",
     "1.7.1",
     "chicken butt"
 )
@@ -435,7 +440,7 @@ class ApixIqfkSimpleMeme(Star):
         # ★ 每日定时状态推送指令
         self.cmd_daily_push_on_name = "状态推送开"
         self.cmd_daily_push_off_name = "状态推送关"
-        self.cmd_daily_push_time_name = "状态推送时间"
+        self.cmd_daily_push_time_name = "状态推送间隔"
         self.cmd_daily_push_list_name = "状态推送列表"
 
         # ★ 群员管理指令
@@ -456,9 +461,19 @@ class ApixIqfkSimpleMeme(Star):
         self.group_mode = "off"
         self.group_whitelist = []
         self.group_blacklist = []
+        # ★ 群白名单（不填 = 不限制群聊）
+        self.allowed_groups = []
+        # ★ 电脑状态单独群开关
+        self.status_groups = []
+        # ★ 电脑状态功能总开关（同时控制定时推送）
+        self.status_enable = True
+        # ★ 接口系统功能总开关 + 允许使用的群号（留空=不限群）
+        self.meme_enable = True
+        self.meme_groups = []
         self.group_block_map = {}
         self.disabled_groups = []
         self.plugin_admins = []
+        self.web_admin_token = ""   # 写操作令牌（可选，reload_cfg 会按配置覆盖）
         # 群员管理（reload_cfg 会按配置覆盖）
         self.moderation_enable = True
         self._blacklist_raw = ""
@@ -620,9 +635,9 @@ class ApixIqfkSimpleMeme(Star):
                     plugin_dir=_plugin_dir(),
                     data_path=_status_push_data_path(),
                 )
-                logger.info("[apix-meme] 每日状态推送模块初始化成功")
+                logger.info("[apix-meme] 定时状态推送模块初始化成功")
             except Exception:
-                logger.exception("[apix-meme] 初始化每日状态推送模块失败")
+                logger.exception("[apix-meme] 初始化定时状态推送模块失败")
 
         self.daily_news_module = None
         if _HAS_DAILY_NEWS:
@@ -661,7 +676,7 @@ class ApixIqfkSimpleMeme(Star):
                 logger.exception("[apix-meme] 注册自定义配置页面路由异常")
 
     # ============================================================
-    # ★ 注册桥接路由（含 CORS 支持，允许 file:// / srcdoc 页面访问）
+    # ★ 注册桥接路由（同源访问，不下发任何 CORS 放行头）
     # ============================================================
     def _register_bridge_routes(self):
         try:
@@ -677,36 +692,86 @@ class ApixIqfkSimpleMeme(Star):
                 json_response = lambda d, status_code=200: d
                 error_response = lambda m, status_code=400: {"ok": False, "msg": m}
 
-        # ★ 通用 CORS 头
-        CORS_HEADERS = {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            "Access-Control-Max-Age": "86400",
-        }
+        # ★ 安全：本插件的页面与接口都由 AstrBot 面板同源访问，
+        #   因此不再下发任何 Access-Control-Allow-Origin（避免跨域全开）。
+        #   同时校验 Origin，非本机/非面板来源的跨域请求一律拒绝。
+
+        def _origin_allowed(request) -> bool:
+            """
+            校验请求来源：
+              · 没有 Origin 头 —— 同源请求或非浏览器客户端，放行
+              · 有 Origin —— 只允许与本机同源的地址（面板自身）
+            """
+            try:
+                req = request if request is not None else _bound_request()
+                if req is None:
+                    return True
+                headers = getattr(req, "headers", None)
+                if not headers:
+                    return True
+                origin = str(headers.get("Origin", "") or "").strip()
+                if not origin:
+                    return True
+                from urllib.parse import urlparse
+                host = urlparse(origin).hostname or ""
+                return host in ("127.0.0.1", "localhost", "::1", "0.0.0.0")
+            except Exception:
+                # 校验本身出错时不拦截，避免误伤正常使用
+                return True
 
         def _with_cors(resp):
-            """给响应对象补上 CORS 头（兼容 aiohttp Response 和 dict）"""
-            try:
-                if resp is None:
-                    return resp
-                if hasattr(resp, "headers"):
-                    for k, v in CORS_HEADERS.items():
-                        resp.headers[k] = v
-                    return resp
-                # 万一不是 Response，包一层
-                from aiohttp import web as _web
-                return _web.json_response(resp, headers=CORS_HEADERS)
-            except Exception:
-                return resp
+            """不再下发 CORS 头，仅返回响应本身（保留函数名以免大范围改动）"""
+            return resp
 
         def _options_response():
-            """OPTIONS 预检直接返回 200 + CORS 头"""
+            """OPTIONS 直接返回 204，不带任何 CORS 放行头"""
             try:
                 from aiohttp import web as _web
-                return _web.Response(status=200, headers=CORS_HEADERS)
+                return _web.Response(status=204)
             except Exception:
                 return {"ok": True}
+
+        def _reject_cross_origin(request=None):
+            """跨域来源直接拒绝，返回 Response 或 None"""
+            if _origin_allowed(request):
+                return None
+            logger.warning("[apix-meme] 已拒绝来自非本机来源的 Web 请求")
+            return _with_cors(json_response(
+                {"ok": False, "msg": "拒绝跨域访问"}, status_code=403
+            ))
+
+        def _require_admin(request=None):
+            """
+            写操作的额外鉴权。
+
+            说明：这些接口本身已由 AstrBot 面板（需登录）分发，且上面已强制
+            拒绝跨域来源，因此这里提供一层**可选的**令牌校验：
+              · 后台配置了 `web_admin_token` -> 必须携带匹配的令牌才能写
+              · 未配置令牌 -> 依赖「同源 + 面板登录」这层防护
+            返回 None 表示通过，否则返回错误响应。
+            """
+            token_cfg = str(getattr(self, "web_admin_token", "") or "").strip()
+            if not token_cfg:
+                return None
+            try:
+                req = request if request is not None else _bound_request()
+            except Exception:
+                req = request
+            given = ""
+            try:
+                if req is not None:
+                    h = getattr(req, "headers", None)
+                    if h:
+                        given = str(h.get("X-Plugin-Token", "") or "")
+            except Exception:
+                given = ""
+            if given and given == token_cfg:
+                return None
+            logger.warning("[apix-meme] 写操作令牌校验失败，已拒绝")
+            return _with_cors(json_response(
+                {"ok": False, "msg": "无权限：令牌缺失或不正确"},
+                status_code=403,
+            ))
 
         # ---------- 请求对象 / 请求体提取 ----------
         def _bound_request():
@@ -774,6 +839,10 @@ class ApixIqfkSimpleMeme(Star):
             # OPTIONS 预检
             if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
                 return _options_response()
+            # ★ 安全：拒绝跨域
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
             try:
                 schema = {}
                 if _HAS_WEB_CONFIG:
@@ -797,6 +866,13 @@ class ApixIqfkSimpleMeme(Star):
             # OPTIONS 预检（request 可能为 None，必须用安全的取值方式）
             if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
                 return _options_response()
+            # ★ 安全：拒绝跨域 + 写操作鉴权
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
+            denied = _require_admin(request)
+            if denied is not None:
+                return denied
 
             try:
                 logger.info("[apix‑meme] POST /config 被调用")
@@ -836,8 +912,10 @@ class ApixIqfkSimpleMeme(Star):
         # ---------- GET /previewStatus ----------
         async def _preview_status_handler(request=None, **kwargs):
             """返回当前配置下的电脑状态文本，供独立页面预览。"""
-            if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
-                return _options_response()
+            # ★ 安全：拒绝跨域
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
             try:
                 group_id = ""
                 try:
@@ -867,11 +945,16 @@ class ApixIqfkSimpleMeme(Star):
         # ---------- POST /testStatusPush ----------
         async def _test_status_push_handler(request=None, **kwargs):
             """按当前（含未保存）配置生成状态文本并立即推送到指定群。"""
-            if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
-                return _options_response()
+            # ★ 安全：拒绝跨域 + 写操作鉴权
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
+            denied = _require_admin(request)
+            if denied is not None:
+                return denied
             try:
                 if self.status_push_module is None:
-                    return _with_cors(json_response({"ok": False, "msg": "每日状态推送模块未加载"}))
+                    return _with_cors(json_response({"ok": False, "msg": "定时状态推送模块未加载"}))
 
                 data = await _extract_payload(request, kwargs)
                 if isinstance(data, dict):
@@ -916,8 +999,10 @@ class ApixIqfkSimpleMeme(Star):
         # ---------- GET /backupInfo ----------
         async def _backup_info_handler(request=None, **kwargs):
             """返回默认备份目录与数据文件清单，供页面展示。"""
-            if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
-                return _options_response()
+            # ★ 安全：拒绝跨域
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
             try:
                 from .core.backup import all_data_files, default_backup_dir
                 files = []
@@ -945,8 +1030,13 @@ class ApixIqfkSimpleMeme(Star):
         # ---------- POST /backup ----------
         async def _backup_handler(request=None, **kwargs):
             """把数据备份到指定目录（留空则用默认目录）。"""
-            if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
-                return _options_response()
+            # ★ 安全：拒绝跨域 + 写操作鉴权
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
+            denied = _require_admin(request)
+            if denied is not None:
+                return denied
             try:
                 data = await _extract_payload(request, kwargs)
                 if isinstance(data, dict):
@@ -970,8 +1060,10 @@ class ApixIqfkSimpleMeme(Star):
         # ---------- GET /backupDownload ----------
         async def _backup_download_handler(request=None, **kwargs):
             """返回全部数据文件的聚合 JSON，供浏览器下载。"""
-            if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
-                return _options_response()
+            # ★ 安全：拒绝跨域
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
             try:
                 from .core.backup import build_bundle
                 result = build_bundle()
@@ -983,8 +1075,10 @@ class ApixIqfkSimpleMeme(Star):
         # ---------- POST /importPreview ----------
         async def _import_preview_handler(request=None, **kwargs):
             """预检导入来源，不写入任何文件。"""
-            if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
-                return _options_response()
+            # ★ 安全：拒绝跨域
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
             try:
                 data = await _extract_payload(request, kwargs)
                 if isinstance(data, dict):
@@ -1010,8 +1104,13 @@ class ApixIqfkSimpleMeme(Star):
         # ---------- POST /importData ----------
         async def _import_data_handler(request=None, **kwargs):
             """从备份目录或备份包还原数据（导入前自动备份当前数据）。"""
-            if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
-                return _options_response()
+            # ★ 安全：拒绝跨域 + 写操作鉴权
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
+            denied = _require_admin(request)
+            if denied is not None:
+                return denied
             try:
                 data = await _extract_payload(request, kwargs)
                 if isinstance(data, dict):
@@ -1044,6 +1143,10 @@ class ApixIqfkSimpleMeme(Star):
         async def _page_handler(request=None, **kwargs):
             if _req_method(request) == "OPTIONS" or _req_method(_bound_request()) == "OPTIONS":
                 return _options_response()
+            # ★ 安全：拒绝跨域
+            denied = _reject_cross_origin(request)
+            if denied is not None:
+                return denied
             try:
                 if _HAS_WEB_CONFIG:
                     try:
@@ -1051,24 +1154,15 @@ class ApixIqfkSimpleMeme(Star):
                         html = render_page_html()
                         if html:
                             from aiohttp import web as _web
-                            resp = _web.Response(text=html, content_type="text/html")
-                            for k, v in CORS_HEADERS.items():
-                                resp.headers[k] = v
-                            return resp
+                            return _web.Response(text=html, content_type="text/html")
                     except Exception:
                         logger.exception("[apix-meme] 渲染页面失败")
                 from aiohttp import web as _web
-                resp = _web.Response(text="index.html not found", status=404)
-                for k, v in CORS_HEADERS.items():
-                    resp.headers[k] = v
-                return resp
+                return _web.Response(text="index.html not found", status=404)
             except Exception as e:
                 logger.exception("[apix-meme] GET /page 失败")
                 from aiohttp import web as _web
-                resp = _web.Response(text=f"error: {e}", status=500)
-                for k, v in CORS_HEADERS.items():
-                    resp.headers[k] = v
-                return resp
+                return _web.Response(text=f"error: {e}", status=500)
 
         if not hasattr(self.context, "register_web_api"):
             logger.error("[apix-meme] context 没有 register_web_api，无法注册桥接路由")
@@ -1383,7 +1477,7 @@ class ApixIqfkSimpleMeme(Star):
 
         self.cmd_daily_push_on_name = to_str(merged.get("cmd_daily_push_on", "状态推送开")).strip() or "状态推送开"
         self.cmd_daily_push_off_name = to_str(merged.get("cmd_daily_push_off", "状态推送关")).strip() or "状态推送关"
-        self.cmd_daily_push_time_name = to_str(merged.get("cmd_daily_push_time", "状态推送时间")).strip() or "状态推送时间"
+        self.cmd_daily_push_time_name = to_str(merged.get("cmd_daily_push_time", "状态推送间隔")).strip() or "状态推送间隔"
         self.cmd_daily_push_list_name = to_str(merged.get("cmd_daily_push_list", "状态推送列表")).strip() or "状态推送列表"
 
         self.cmd_blacklist_list_name = to_str(merged.get("cmd_blacklist_list", "黑名单列表")).strip() or "黑名单列表"
@@ -1421,7 +1515,7 @@ class ApixIqfkSimpleMeme(Star):
             try:
                 self.status_push_module.reload(merged)
             except Exception:
-                logger.exception("[apix-meme] 刷新每日状态推送模块失败")
+                logger.exception("[apix-meme] 刷新定时状态推送模块失败")
 
         status_raw = to_str(merged.get("cmd_status", "电脑状态")).strip() or "电脑状态"
         self.cmd_status_names = [s.strip() for s in status_raw.split(",") if s.strip()]
@@ -1433,6 +1527,9 @@ class ApixIqfkSimpleMeme(Star):
             x.strip() for x in to_str(merged.get("plugin_admins", "")).splitlines()
             if x.strip()
         ]
+
+        # 写操作令牌（可选）：留空时仅依赖同源 + 面板登录防护
+        self.web_admin_token = to_str(merged.get("web_admin_token", "")).strip()
 
         self.minecraft_auto_groups = [
             x.strip() for x in to_str(merged.get("minecraft_auto_groups", "")).splitlines()
@@ -1470,6 +1567,29 @@ class ApixIqfkSimpleMeme(Star):
             self.group_mode = "off"
         self.group_whitelist = parse_line_list(merged.get("group_whitelist", ""))
         self.group_blacklist = parse_line_list(merged.get("group_blacklist", ""))
+        # ★ 全局群白名单：填了群号则只有这些群能用本插件；留空 = 不限制群聊
+        self.allowed_groups = parse_gid_whitelist(merged.get("global_groups", ""))
+        # ★ 电脑状态：单独群开关（填了则只有这些群能查电脑状态）
+        self.status_groups = parse_gid_whitelist(merged.get("status_groups", ""))
+        # ★ 电脑状态功能总开关：控制查询与定时推送
+        #   兼容旧的 daily_status_push_enable：未配置新开关时沿用旧值，升级不丢推送
+        if "status_enable" in merged:
+            self.status_enable = bool(merged.get("status_enable"))
+        else:
+            self.status_enable = bool(merged.get("daily_status_push_enable", True))
+        # 同步给定时推送模块（推送也受这个总开关控制）
+        if self.status_push_module is not None:
+            try:
+                self.status_push_module.set_enable(self.status_enable)
+            except Exception:
+                logger.exception("[apix-meme] 同步电脑状态总开关失败")
+
+        # ★ 接口系统：功能总开关 + 允许使用的群号（留空 = 不限制群聊）
+        if "meme_enable" in merged:
+            self.meme_enable = bool(merged.get("meme_enable"))
+        else:
+            self.meme_enable = True
+        self.meme_groups = parse_gid_whitelist(merged.get("meme_groups", ""))
         _block_map = parse_group_block_keywords(merged.get("group_block_keywords", ""))
         self.group_block_map = _block_map if isinstance(_block_map, dict) else {}
         self.disabled_groups = self._parse_disabled_groups(merged.get("disabled_groups", ""))
@@ -1704,6 +1824,7 @@ class ApixIqfkSimpleMeme(Star):
             existing["cmd_daily_news_list"] = self.cmd_daily_news_list_name
 
             existing["plugin_admins"] = "\n".join(self.plugin_admins)
+            existing["web_admin_token"] = self.web_admin_token
             existing["feature_switch"] = {k: True for k in self.feature_switch.keys()}
             existing["group_feature_switches"] = self.group_feature_switches
             existing["group_admin_cache_ttl"] = str(
@@ -1712,6 +1833,14 @@ class ApixIqfkSimpleMeme(Star):
             existing["group_mode"] = self.group_mode
             existing["group_whitelist"] = "\n".join(self.group_whitelist)
             existing["group_blacklist"] = "\n".join(self.group_blacklist)
+            existing["global_groups"] = ",".join(self.allowed_groups)
+            existing["status_groups"] = ",".join(self.status_groups)
+            existing["status_enable"] = self.status_enable
+            existing["meme_enable"] = self.meme_enable
+            existing["meme_groups"] = ",".join(self.meme_groups)
+            if self.status_push_module is not None:
+                # 定时推送群配置由后台填写，这里保持一致，避免内存与磁盘不同步
+                existing.setdefault("daily_status_push_groups", "")
             existing["group_block_keywords"] = block_text
             existing["disabled_groups"] = "\n".join(self.disabled_groups)
             existing["word_reply_list"] = word_reply_list
@@ -2189,14 +2318,14 @@ class ApixIqfkSimpleMeme(Star):
         n = self.cmd_chime_list_name
         return text in (n, f"/{n}")
 
-    # ---------- 每日状态推送指令识别 ----------
+    # ---------- 定时状态推送指令识别 ----------
     @staticmethod
     def _reshape_time_args(arg: str):
         """
         解析「时间」类参数，兼容两种顺序：
-          状态推送时间 09:00 123456   -> (123456, "09:00")
-          状态推送时间 123456 09:00   -> (123456, "09:00")
-          状态推送时间 09:00          -> ("", "09:00")
+          状态推送间隔 60 123456   -> (123456, "60")
+          状态推送间隔 123456 60   -> (123456, "60")
+          状态推送间隔 60             -> ("", "60")
         返回的时间统一规范化为 HH:MM；无法识别为时间时返回空串，
         由调用方给出用法提示。若两个 token 都不是时间，则把第一个当群号、
         第二个当非法时间输入，以便提示用户格式错误。
@@ -2902,6 +3031,10 @@ class ApixIqfkSimpleMeme(Star):
                 yield event.plain_result("⚠️ 签到功能已关闭")
                 GLOBAL_STATS["send"] += 1
                 return
+            if not self._is_group_feature_enable(group_id, "steal"):
+                yield event.plain_result("⚠️ 偷积分功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
             try:
                 self.checkin_module.settle_interest_if_needed()
                 target_raw = ""
@@ -2936,6 +3069,10 @@ class ApixIqfkSimpleMeme(Star):
                 yield event.plain_result("⚠️ 签到功能已关闭")
                 GLOBAL_STATS["send"] += 1
                 return
+            if not self._is_group_feature_enable(group_id, "bank"):
+                yield event.plain_result("⚠️ 银行功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
             try:
                 self.checkin_module.settle_interest_if_needed()
                 text = self.checkin_module.do_bank_info(event)
@@ -2952,6 +3089,10 @@ class ApixIqfkSimpleMeme(Star):
         if deposit_args is not None:
             if not self._is_group_feature_enable(group_id, "checkin"):
                 yield event.plain_result("⚠️ 签到功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
+            if not self._is_group_feature_enable(group_id, "bank"):
+                yield event.plain_result("⚠️ 银行功能已关闭")
                 GLOBAL_STATS["send"] += 1
                 return
             try:
@@ -2972,6 +3113,10 @@ class ApixIqfkSimpleMeme(Star):
                 yield event.plain_result("⚠️ 签到功能已关闭")
                 GLOBAL_STATS["send"] += 1
                 return
+            if not self._is_group_feature_enable(group_id, "bank"):
+                yield event.plain_result("⚠️ 银行功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
             try:
                 self.checkin_module.settle_interest_if_needed()
                 text = self.checkin_module.do_withdraw(event, withdraw_args[1])
@@ -2990,6 +3135,10 @@ class ApixIqfkSimpleMeme(Star):
                 yield event.plain_result("⚠️ 签到功能已关闭")
                 GLOBAL_STATS["send"] += 1
                 return
+            if not self._is_group_feature_enable(group_id, "mount"):
+                yield event.plain_result("⚠️ 坐骑功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
             try:
                 text = self.checkin_module.do_mount_info(event)
                 if text:
@@ -3004,6 +3153,10 @@ class ApixIqfkSimpleMeme(Star):
         if self.checkin_module is not None and self.checkin_module.match_mount_list_trigger(msg_str):
             if not self._is_group_feature_enable(group_id, "checkin"):
                 yield event.plain_result("⚠️ 签到功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
+            if not self._is_group_feature_enable(group_id, "mount"):
+                yield event.plain_result("⚠️ 坐骑功能已关闭")
                 GLOBAL_STATS["send"] += 1
                 return
             try:
@@ -3050,6 +3203,10 @@ class ApixIqfkSimpleMeme(Star):
         if job_args is not None:
             if not self._is_group_feature_enable(group_id, "checkin"):
                 yield event.plain_result("⚠️ 签到功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
+            if not self._is_group_feature_enable(group_id, "job"):
+                yield event.plain_result("⚠️ 打工功能已关闭")
                 GLOBAL_STATS["send"] += 1
                 return
             try:
@@ -3466,7 +3623,7 @@ class ApixIqfkSimpleMeme(Star):
                 GLOBAL_STATS["send"] += 1
                 return
             if self.status_push_module is None:
-                yield event.plain_result("❌ 每日状态推送模块未加载")
+                yield event.plain_result("❌ 定时状态推送模块未加载")
                 GLOBAL_STATS["send"] += 1
                 return
             target_gid = push_on_arg or group_id
@@ -3477,13 +3634,13 @@ class ApixIqfkSimpleMeme(Star):
                 GLOBAL_STATS["send"] += 1
                 return
             self.status_push_module.set_group_on(target_gid, True)
-            t = self.status_push_module.get_group_time(target_gid)
-            custom = self.status_push_module.get_group_raw_time(target_gid)
+            iv = self.status_push_module.get_group_interval(target_gid)
+            custom = self.status_push_module.get_group_raw_interval(target_gid)
             scope = f"群【{target_gid}】" if push_on_arg else "本群"
             yield event.plain_result(
-                f"✅ 已开启{scope}的每日状态推送\n"
-                f"🕐 推送时间：{t}{'（本群自定义）' if custom else '（跟随全局默认）'}\n"
-                f"💡 可用「{self.cmd_daily_push_time_name} {t}」单独改时间"
+                f"✅ 已开启{scope}的定时状态推送\n"
+                f"⏱ 推送间隔：每 {iv} 分钟一次{'（本群自定义）' if custom else '（跟随全局默认）'}\n"
+                f"💡 可用「{self.cmd_daily_push_time_name} {iv}」单独改间隔（单位分钟）"
             )
             GLOBAL_STATS["send"] += 1
             return
@@ -3496,7 +3653,7 @@ class ApixIqfkSimpleMeme(Star):
                 GLOBAL_STATS["send"] += 1
                 return
             if self.status_push_module is None:
-                yield event.plain_result("❌ 每日状态推送模块未加载")
+                yield event.plain_result("❌ 定时状态推送模块未加载")
                 GLOBAL_STATS["send"] += 1
                 return
             target_gid = push_off_arg or group_id
@@ -3508,11 +3665,11 @@ class ApixIqfkSimpleMeme(Star):
                 return
             self.status_push_module.set_group_on(target_gid, False)
             scope = f"群【{target_gid}】" if push_off_arg else "本群"
-            yield event.plain_result(f"✅ 已关闭{scope}的每日状态推送")
+            yield event.plain_result(f"✅ 已关闭{scope}的定时状态推送")
             GLOBAL_STATS["send"] += 1
             return
 
-        # ============ 状态推送时间 ============
+        # ============ 状态推送间隔 ============
         push_time_args = self._is_daily_push_time_cmd(msg_str)
         if push_time_args is not None:
             if not await self._check_admin(event):
@@ -3520,30 +3677,33 @@ class ApixIqfkSimpleMeme(Star):
                 GLOBAL_STATS["send"] += 1
                 return
             if self.status_push_module is None:
-                yield event.plain_result("❌ 每日状态推送模块未加载")
+                yield event.plain_result("❌ 定时状态推送模块未加载")
                 GLOBAL_STATS["send"] += 1
                 return
+            m = self.status_push_module
 
             if push_time_args[0] == "self":
-                # 查询本群当前生效时间
+                # 查询本群当前生效间隔
                 target_gid = group_id
                 if not target_gid:
-                    default_t = self.status_push_module.default_time
                     yield event.plain_result(
-                        f"🕐 全局默认推送时间：{default_t}\n"
-                        f"💡 在群里用「{self.cmd_daily_push_time_name} 09:00」设置本群时间"
+                        f"⏱ 全局默认推送间隔：每 {m.default_interval} 分钟一次\n"
+                        f"💡 在群里用「{self.cmd_daily_push_time_name} 60」设置本群间隔"
                     )
                     GLOBAL_STATS["send"] += 1
                     return
-                eff = self.status_push_module.get_group_time(target_gid)
-                raw_t = self.status_push_module.get_group_raw_time(target_gid)
-                on = self.status_push_module.is_group_on(target_gid)
+                eff = m.get_group_interval(target_gid)
+                raw_iv = m.get_group_raw_interval(target_gid)
+                on = m.is_group_on(target_gid)
+                last = m.get_last_push(target_gid)
+                last_at = str(last.get("at", "") or "（尚未推送过）")
                 yield event.plain_result(
-                    f"🕐 群【{target_gid}】推送时间：{eff}\n"
-                    f"· 来源：{'本群自定义' if raw_t else '跟随全局默认（' + self.status_push_module.default_time + '）'}\n"
+                    f"⏱ 群【{target_gid}】推送间隔：每 {eff} 分钟一次\n"
+                    f"· 来源：{'本群自定义' if raw_iv else '跟随全局默认（' + str(m.default_interval) + ' 分钟）'}\n"
                     f"· 开关：{'已开启' if on else '未开启'}\n"
-                    f"💡 设置：{self.cmd_daily_push_time_name} 09:00\n"
-                    f"💡 指定群：{self.cmd_daily_push_time_name} 群号 09:00"
+                    f"· 上次推送：{last_at}\n"
+                    f"💡 设置：{self.cmd_daily_push_time_name} 60\n"
+                    f"💡 指定群：{self.cmd_daily_push_time_name} 群号 60"
                 )
                 GLOBAL_STATS["send"] += 1
                 return
@@ -3553,29 +3713,31 @@ class ApixIqfkSimpleMeme(Star):
             if not target_gid or not str(target_gid).isdigit():
                 yield event.plain_result(
                     f"⚠️ 无法确定群号\n"
-                    f"用法：{self.cmd_daily_push_time_name} 09:00\n"
-                    f"或：{self.cmd_daily_push_time_name} 群号 09:00"
+                    f"用法：{self.cmd_daily_push_time_name} 60\n"
+                    f"或：{self.cmd_daily_push_time_name} 群号 60"
                 )
                 GLOBAL_STATS["send"] += 1
                 return
             if not arg_time:
                 yield event.plain_result(
-                    f"⚠️ 时间格式无效\n"
-                    f"用法：{self.cmd_daily_push_time_name} 09:00（24 小时制，分钟级）"
+                    f"⚠️ 间隔无效\n"
+                    f"用法：{self.cmd_daily_push_time_name} 60（单位分钟，例如 60 = 每 60 分钟一次）"
                 )
                 GLOBAL_STATS["send"] += 1
                 return
-            if not self.status_push_module.set_group_time(target_gid, arg_time):
+            if not m.set_group_interval(target_gid, arg_time):
                 yield event.plain_result(
-                    f"⚠️ 时间格式无效：{arg_time}\n"
-                    f"请用 24 小时制 HH:MM，例如 08:30、21:00"
+                    f"⚠️ 间隔无效：{arg_time}\n"
+                    f"请填分钟数（正整数），例如 30、60、120；也支持「1小时」"
                 )
                 GLOBAL_STATS["send"] += 1
                 return
-            eff = self.status_push_module.get_group_time(target_gid)
-            on = self.status_push_module.is_group_on(target_gid)
+            eff = m.get_group_interval(target_gid)
+            on = m.is_group_on(target_gid)
             tip = "" if on else f"\n💡 该群推送开关还没开，用「{self.cmd_daily_push_on_name}」开启"
-            yield event.plain_result(f"✅ 群【{target_gid}】推送时间已设为 {eff}{tip}")
+            yield event.plain_result(
+                f"✅ 群【{target_gid}】推送间隔已设为每 {eff} 分钟一次{tip}"
+            )
             GLOBAL_STATS["send"] += 1
             return
 
@@ -3586,14 +3748,14 @@ class ApixIqfkSimpleMeme(Star):
                 GLOBAL_STATS["send"] += 1
                 return
             if self.status_push_module is None:
-                yield event.plain_result("❌ 每日状态推送模块未加载")
+                yield event.plain_result("❌ 定时状态推送模块未加载")
                 GLOBAL_STATS["send"] += 1
                 return
             m = self.status_push_module
             head = (
-                f"======每日状态推送列表======\n"
+                f"======定时状态推送列表======\n"
                 f"总开关：{'✅ 已开启' if m.enable else '❌ 未开启（后台配置中打开）'}\n"
-                f"全局默认时间：{m.default_time}"
+                f"全局默认间隔：每 {m.default_interval} 分钟一次"
             )
             items = m.list_groups()
             if not items:
@@ -3605,7 +3767,17 @@ class ApixIqfkSimpleMeme(Star):
                 gid = it["group_id"]
                 umo_tag = "✅" if m.get_umo(gid) else "⚠️"
                 src = "自定义" if it["custom"] else "默认"
-                lines.append(f"· 群 {gid} — {it['time']}（{src}）{umo_tag}")
+                last = m.get_last_push(gid)
+                push_info = ""
+                if last:
+                    last_ts = float(last.get("ts", 0) or 0)
+                    if last.get("init") or last_ts <= 0:
+                        push_info = "（尚未推送）"
+                    else:
+                        push_info = f"（上次 {fmt_seconds(time.time() - last_ts)}前）"
+                lines.append(
+                    f"· 群 {gid} — 每 {it['interval']} 分钟（{src}）{umo_tag} {push_info}"
+                )
             lines.append("")
             lines.append("💡 ✅=推送通道已就绪，⚠️=该群还没有发过消息")
             yield event.plain_result("\n".join(lines))
@@ -4163,8 +4335,12 @@ class ApixIqfkSimpleMeme(Star):
             GLOBAL_STATS["send"] += 1
             return
 
-        # ============ 群黑白名单 ============
-        if not is_group_allowed(group_id, self.group_mode, self.group_whitelist, self.group_blacklist):
+        # ============ 群白名单（不填 = 不限制群聊）============
+        if self.allowed_groups:
+            if not group_allowed(group_id, self.allowed_groups):
+                return
+        elif not is_group_allowed(group_id, self.group_mode, self.group_whitelist, self.group_blacklist):
+            # 未填新白名单时，回退到旧的黑/白名单逻辑
             return
 
         # ============ 运势 ============
@@ -4332,6 +4508,21 @@ class ApixIqfkSimpleMeme(Star):
                 yield event.plain_result("⚠️仅管理员/群主/群管可执行")
                 GLOBAL_STATS["send"] += 1
                 return
+            # ★ 电脑状态功能总开关（同时控制定时推送）
+            if not self.status_enable:
+                yield event.plain_result("⚠️ 电脑状态功能已关闭（后台「电脑状态」中开启）")
+                GLOBAL_STATS["send"] += 1
+                return
+            # ★ 本群功能开关（默认开启，可用「关闭功能 电脑状态」关闭本群）
+            if not self._is_group_feature_enable(group_id, "status"):
+                yield event.plain_result("⚠️ 本群电脑状态功能已关闭")
+                GLOBAL_STATS["send"] += 1
+                return
+            # ★ 电脑状态单独群开关：填了群号则只有这些群可查
+            if not group_allowed(group_id, self.status_groups):
+                yield event.plain_result("⚠️ 本群未开启电脑状态查询")
+                GLOBAL_STATS["send"] += 1
+                return
             try:
                 yield event.plain_result(
                     collect_runtime_status(event, cfg=self._read_disk_config() or {})
@@ -4390,6 +4581,14 @@ class ApixIqfkSimpleMeme(Star):
         # ---- 接口系统 · 三级子菜单（图片 / 视频 各自独立） ----
         meme_feature_args = self._is_meme_feature_menu(msg_str)
         if meme_feature_args is not None:
+            if not self.meme_enable:
+                yield event.plain_result("⚠️ 接口系统已关闭（后台「接口系统」中开启）")
+                GLOBAL_STATS["send"] += 1
+                return
+            if not group_allowed(group_id, self.meme_groups):
+                yield event.plain_result("⚠️ 本群未开启接口系统")
+                GLOBAL_STATS["send"] += 1
+                return
             if ac is None:
                 yield event.plain_result("❌管理指令模块未加载")
                 GLOBAL_STATS["send"] += 1
@@ -4464,6 +4663,14 @@ class ApixIqfkSimpleMeme(Star):
             GLOBAL_STATS["send"] += 1
             return
         if self._is_meme_menu(msg_str):
+            if not self.meme_enable:
+                yield event.plain_result("⚠️ 接口系统已关闭（后台「接口系统」中开启）")
+                GLOBAL_STATS["send"] += 1
+                return
+            if not group_allowed(group_id, self.meme_groups):
+                yield event.plain_result("⚠️ 本群未开启接口系统")
+                GLOBAL_STATS["send"] += 1
+                return
             yield event.plain_result(self._build_meme_menu())
             GLOBAL_STATS["send"] += 1
             return
@@ -4491,6 +4698,14 @@ class ApixIqfkSimpleMeme(Star):
         # ============ 接口列表 ============
         page = self._is_list_menu(msg_str)
         if page is not None:
+            if not self.meme_enable:
+                yield event.plain_result("⚠️ 接口系统已关闭（后台「接口系统」中开启）")
+                GLOBAL_STATS["send"] += 1
+                return
+            if not group_allowed(group_id, self.meme_groups):
+                yield event.plain_result("⚠️ 本群未开启接口系统")
+                GLOBAL_STATS["send"] += 1
+                return
             if ac is None:
                 yield event.plain_result("❌管理指令模块未加载")
                 GLOBAL_STATS["send"] += 1
@@ -4508,7 +4723,9 @@ class ApixIqfkSimpleMeme(Star):
 
         # ============ 早安晚安（真实打卡逻辑，放在菜单之后） ============
         if self._is_group_feature_enable(group_id, "greeting") and self.greeting_module is not None:
-            if self.greeting_module.match_morning(msg_str):
+            # ★ 打卡系统群白名单（早安与晚安共用一个开关）
+            greeting_group_ok = self.greeting_module.is_group_allowed(group_id)
+            if (self.greeting_module.match_morning(msg_str) and greeting_group_ok):
                 try:
                     text = self.greeting_module.handle_morning(event)
                     if text:
@@ -4517,7 +4734,7 @@ class ApixIqfkSimpleMeme(Star):
                 except Exception:
                     logger.exception("[apix-meme] 早安处理失败")
                 return
-            if self.greeting_module.match_night(msg_str):
+            if (self.greeting_module.match_night(msg_str) and greeting_group_ok):
                 try:
                     text = self.greeting_module.handle_night(event)
                     if text:
@@ -4528,7 +4745,9 @@ class ApixIqfkSimpleMeme(Star):
                 return
 
         # ============ 接口调用 ============
-        if self._is_group_feature_enable(group_id, "meme"):
+        if (self.meme_enable
+                and group_allowed(group_id, self.meme_groups)
+                and self._is_group_feature_enable(group_id, "meme")):
             async for result in self._handle_meme(event, msg_str):
                 yield result
             return

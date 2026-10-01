@@ -53,10 +53,11 @@ def all_data_files() -> list:
 
 
 def default_backup_dir() -> str:
-    """默认备份根目录：AstrBot data/backups"""
-    cfg_dir = os.path.dirname(os.path.abspath(config_path()))
-    data_dir = os.path.dirname(cfg_dir)
-    return os.path.join(data_dir, "backups")
+    """
+    默认备份根目录：本插件数据目录下的 backups/
+    （即 data/plugin_data/<插件名>/backups/，符合数据落盘规范）
+    """
+    return os.path.join(os.path.dirname(os.path.abspath(config_path())), "backups")
 
 
 def _unique_dir(base: str, name: str) -> str:

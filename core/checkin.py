@@ -1,9 +1,12 @@
 import os
+import re as _re
 import json
 import time
 import random
 import datetime
 from astrbot.api import logger
+
+from .path_utils import parse_gid_list as _parse_gid_list
 
 
 def _today_str() -> str:
@@ -122,8 +125,11 @@ class CheckinModule:
         self.cmd_mount_del_names = ["删除坐骑", "删坐骑"]
 
         self.group_mode = "off"
+        self.feature_groups = {}
         self.group_whitelist = []
         self.group_blacklist = []
+        # 全局群白名单（不填 = 不限制群聊）
+        self.allowed_groups = []
 
         self.users = {}
         self.daily = {}
@@ -205,6 +211,15 @@ class CheckinModule:
             self.group_mode = "off"
         self.group_whitelist = self._parse_lines(cfg.get("checkin_group_whitelist", ""))
         self.group_blacklist = self._parse_lines(cfg.get("checkin_group_blacklist", ""))
+
+        # ★ 全局群白名单：填了群号则只有这些群能用签到系统；留空 = 不限制群聊
+        self.allowed_groups = _parse_gid_list(cfg.get("checkin_global_groups", ""))
+
+        # 子功能「单独群开关」：填了群号则只有这些群能用该子功能；留空 = 不限群
+        self.feature_groups = {}
+        for feat, key in self._FEATURE_GROUP_KEYS.items():
+            raw = cfg.get(key, "")
+            self.feature_groups[feat] = _parse_gid_list(raw)
 
         # ============ 坐骑配置 ============
         self.mount_enable = bool(cfg.get("mount_enable", True))
@@ -302,24 +317,70 @@ class CheckinModule:
 
     @staticmethod
     def _parse_lines(raw) -> list:
+        """
+        解析多行配置项，返回去重后的列表。
+        同时支持换行、英文逗号、中文逗号、顿号、分号分隔（原来只支持换行，
+        导致填成 "3001,3009" 会被当成一个无效项，白名单直接失效）。
+        忽略空行与 # 注释行。
+        """
         if not raw:
             return []
         if isinstance(raw, list):
-            out = []
+            parts = []
             for it in raw:
                 if isinstance(it, str):
-                    out.extend(it.splitlines())
+                    parts.append(it)
         else:
-            out = str(raw).splitlines()
-        return [x.strip() for x in out if x.strip() and not x.strip().startswith("#")]
+            parts = [str(raw)]
 
-    def _is_group_allowed(self, group_id: str) -> bool:
+        out, seen = [], set()
+        for chunk in parts:
+            for line in chunk.splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                for piece in _re.split(r"[,，、;；]+", line):
+                    item = piece.strip()
+                    if item and item not in seen:
+                        seen.add(item)
+                        out.append(item)
+        return out
+
+    # 子功能标识 -> 后台「单独群开关」配置键
+    _FEATURE_GROUP_KEYS = {
+        "checkin": "checkin_groups",
+        "steal": "steal_groups",
+        "bank": "bank_groups",
+        "mount": "mount_groups",
+        "job": "job_groups",
+    }
+
+    def _is_group_allowed(self, group_id: str, feature: str = "") -> bool:
+        """
+        群过滤：
+          ① 全局白名单（checkin_global_groups）：填了则只有名单内的群可用；留空 = 不限制
+          ② 子功能白名单（各功能单独群开关）：填了则只有名单内的群可用；留空 = 不限制
+        两个条件是「与」的关系，都留空就是完全不限群。
+        旧的黑/白名单配置在未填新白名单时仍然生效（向后兼容）。
+        """
         if not group_id:
             return True
-        if self.group_mode == "whitelist":
-            return group_id in self.group_whitelist
-        if self.group_mode == "blacklist":
-            return group_id not in self.group_blacklist
+        gid = str(group_id)
+        # ① 全局白名单
+        if self.allowed_groups:
+            if gid not in self.allowed_groups:
+                return False
+        elif self.group_mode == "whitelist":
+            if gid not in self.group_whitelist:
+                return False
+        elif self.group_mode == "blacklist":
+            if gid in self.group_blacklist:
+                return False
+        # ② 子功能单独群开关（配了才生效）
+        if feature:
+            gids = self.feature_groups.get(feature)
+            if gids and gid not in gids:
+                return False
         return True
 
     def _load(self):
@@ -574,7 +635,7 @@ class CheckinModule:
 
     def do_checkin(self, event) -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "checkin"):
             return ""
         user_id = get_user_id(event)
         user_name = get_user_name(event) or f"QQ{user_id}"
@@ -779,7 +840,7 @@ class CheckinModule:
 
     def do_steal(self, event, target_raw: str = "") -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "steal"):
             return ""
         attacker_id = get_user_id(event)
         attacker_name = get_user_name(event) or f"QQ{attacker_id}"
@@ -866,7 +927,7 @@ class CheckinModule:
 
     def do_bank_info(self, event) -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "bank"):
             return ""
         user_id = get_user_id(event)
         user_name = get_user_name(event) or f"QQ{user_id}"
@@ -910,7 +971,7 @@ class CheckinModule:
 
     def do_deposit(self, event, arg: str) -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "bank"):
             return ""
         user_id = get_user_id(event)
         user_name = get_user_name(event) or f"QQ{user_id}"
@@ -949,7 +1010,7 @@ class CheckinModule:
 
     def do_withdraw(self, event, arg: str) -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "bank"):
             return ""
         user_id = get_user_id(event)
         user_name = get_user_name(event) or f"QQ{user_id}"
@@ -989,7 +1050,7 @@ class CheckinModule:
     # ============================================================
     def do_mount_info(self, event) -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "mount"):
             return ""
         user_id = get_user_id(event)
         user_name = get_user_name(event) or f"QQ{user_id}"
@@ -1036,7 +1097,7 @@ class CheckinModule:
 
     def do_mount_buy(self, event, mount_name: str) -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "mount"):
             return ""
         user_id = get_user_id(event)
         user_name = get_user_name(event) or f"QQ{user_id}"
@@ -1178,7 +1239,7 @@ class CheckinModule:
 
     def do_job_work(self, event, job_name: str = "") -> str:
         group_id = get_group_id(event)
-        if not self._is_group_allowed(group_id):
+        if not self._is_group_allowed(group_id, "job"):
             return ""
         user_id = get_user_id(event)
         user_name = get_user_name(event) or f"QQ{user_id}"

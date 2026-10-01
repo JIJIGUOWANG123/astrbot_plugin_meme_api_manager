@@ -17,6 +17,9 @@ FEATURE_ALIAS = {
     "表情": "meme",
     "表情包": "meme",
     "meme": "meme",
+    "电脑状态": "status",
+    "状态": "status",
+    "status": "status",
     "早安": "greeting",
     "晚安": "greeting",
     "早安晚安": "greeting",
@@ -28,6 +31,11 @@ FEATURE_ALIAS = {
     "mc版本": "minecraft",
     "签到": "checkin",
     "checkin": "checkin",
+    "神偷": "steal",
+    "偷积分": "steal",
+    "steal": "steal",
+    "银行": "bank",
+    "bank": "bank",
     "坐骑": "mount",
     "mount": "mount",
     "打工": "job",
@@ -40,12 +48,18 @@ FEATURE_LABEL = {
     "luck": "今日人品",
     "word_reply": "自定义词库",
     "meme": "接口系统",
+    "status": "电脑状态",
     "greeting": "早安晚安",
     "minecraft": "MC版本检测",
     "checkin": "每日签到",
+    "steal": "偷积分",
+    "bank": "银行系统",
     "mount": "坐骑系统",
     "job": "打工系统",
 }
+
+# 这些是「每日签到」下的子功能：主签到开关关掉后，它们也会一并失效
+CHECKIN_SUB_FEATURES = ("steal", "bank", "mount", "job")
 
 
 class AdminCommands:
@@ -153,6 +167,11 @@ class AdminCommands:
         return f"✅本群已开启：{FEATURE_LABEL[key]}"
 
     def feature_status_text(self, group_id: str = None, target_group: str = None) -> str:
+        """
+        显示本群的功能状态。
+        与后台配置保持一致：既显示「全局总开关 / 允许群号」，
+        也显示「本群功能开关」，这样一眼能看出功能到底为什么开/关。
+        """
         p = self.plugin
 
         show_gid = None
@@ -164,13 +183,122 @@ class AdminCommands:
         if not show_gid:
             return "⚠️ 请在群聊中使用该指令，或指定群号：功能状态 群号"
 
-        lines = [f"======群 {show_gid} 功能开关状态======"]
-        group_cfg = p.group_feature_switches.get(show_gid, {})
+        gid = show_gid
+        lines = [f"======群 {gid} 功能开关状态======"]
+
+        # ---------- ① 全局总开关 ----------
+        global_switches = []
+        try:
+            global_switches.append(("电脑状态", bool(getattr(p, "status_enable", True))))
+        except Exception:
+            pass
+        try:
+            global_switches.append(("接口系统", bool(getattr(p, "meme_enable", True))))
+        except Exception:
+            pass
+        if global_switches:
+            lines.append("【全局总开关】")
+            for label, on in global_switches:
+                lines.append(f"· {label}：{'✅ 开启' if on else '❌ 全局关闭'}")
+
+        # ---------- ② 全局群白名单 ----------
+        def _glist(name):
+            return [str(x) for x in (getattr(p, name, None) or [])]
+
+        def _wl_state(name):
+            gids = _glist(name)
+            if not gids:
+                return "不限制群聊", True
+            return (f"仅限 {len(gids)} 个群", gid in gids)
+
+        wl_rows = []
+        for label, name in (("全局", "allowed_groups"),
+                            ("电脑状态", "status_groups"),
+                            ("接口系统", "meme_groups")):
+            desc, ok = _wl_state(name)
+            wl_rows.append((label, desc, ok))
+        if any(desc != "不限制群聊" for _l, desc, _o in wl_rows):
+            lines.append("")
+            lines.append("【群号白名单】")
+            for label, desc, ok in wl_rows:
+                mark = "✅" if ok else "❌"
+                lines.append(f"· {label}：{desc} {mark if desc != '不限制群聊' else ''}".rstrip())
+
+        # ---------- ③ 各功能的「允许群号」配置 ----------
+        #   与后台各功能页的群号白名单一一对应，避免状态显示与实际配置脱节
+        def _wl_of(getter):
+            """getter() 返回群号列表；空列表视为不限制"""
+            try:
+                gids = [str(x) for x in (getter() or [])]
+            except Exception:
+                return None
+            return gids
+
+        wl_specs = [
+            ("今日运势", lambda: getattr(getattr(p, "fortune_module", None), "allowed_groups", None)),
+            ("今日老公", lambda: getattr(getattr(p, "husband_module", None), "allowed_groups", None)),
+            ("今日人品", lambda: getattr(getattr(p, "luck_module", None), "allowed_groups", None)),
+            ("自定义词库", lambda: getattr(getattr(p, "word_reply_module", None), "allowed_groups", None)),
+            ("早安晚安", lambda: getattr(getattr(p, "greeting_module", None), "allowed_groups", None)),
+            ("签到系统", lambda: getattr(getattr(p, "checkin_module", None), "allowed_groups", None)),
+        ]
+        wl_lines = []
+        for label, getter in wl_specs:
+            gids = _wl_of(getter)
+            if gids is None:
+                continue          # 模块未加载，跳过
+            if not gids:
+                continue          # 不限制群聊，无需显示
+            mark = "✅" if gid in gids else "❌"
+            wl_lines.append(f"· {label}：{'、'.join(gids)} {mark}")
+        if wl_lines:
+            lines.append("")
+            lines.append("【功能群号白名单】（标注的是本群是否可用）")
+            lines.extend(wl_lines)
+
+        # ---------- ④ 本群功能开关 ----------
+        lines.append("")
+        lines.append("【本群功能开关】")
+        group_cfg = p.group_feature_switches.get(gid, {})
+        sub_feats = set(CHECKIN_SUB_FEATURES)
         for key, label in FEATURE_LABEL.items():
             g_on = bool(group_cfg.get(key, True))
-            lines.append(f"{label}：{'✅ 开启' if g_on else '❌ 关闭'}")
+            # 子功能额外标注父开关，避免误解为完全独立
+            suffix = ""
+            if key in sub_feats:
+                if not bool(group_cfg.get("checkin", True)):
+                    suffix = "（签到主开关已关，随之失效）"
+                else:
+                    suffix = "（签到子功能）"
+            lines.append(f"· {label}：{'✅ 开启' if g_on else '❌ 关闭'}{suffix}")
+
+        # ---------- ⑤ 用「群号订阅」控制的功能 ----------
+        #   整点报时 / 每日读报 / 定时状态推送 的每群开关存在各自的状态文件里，
+        #   不在 group_feature_switches 中，这里单独列出，避免状态显示与后台脱节
+        sub_specs = [
+            ("整点报时", "hourly_chime_module"),
+            ("每日读报", "daily_news_module"),
+            ("定时状态推送", "status_push_module"),
+        ]
+        sub_lines = []
+        for label, attr in sub_specs:
+            m = getattr(p, attr, None)
+            if m is None:
+                continue
+            try:
+                on = bool(m.is_group_on(gid))
+            except Exception:
+                continue
+            sub_lines.append(f"· {label}：{'✅ 本群已开启' if on else '❌ 本群未开启'}")
+        if sub_lines:
+            lines.append("")
+            lines.append("【群号订阅类功能】")
+            lines.extend(sub_lines)
+
         lines.append("")
         lines.append("💡 默认全部开启；用「开启功能 xxx」「关闭功能 xxx」调整本群状态")
+        lines.append("💡 全局总开关与群号白名单在后台配置中设置")
+        lines.append("💡 群号订阅类功能在各自菜单里用指令开关（或在后台填群号）")
         return "\n".join(lines)
 
     def set_group_must_at_bot(self, group_id: str, enabled: bool) -> str:

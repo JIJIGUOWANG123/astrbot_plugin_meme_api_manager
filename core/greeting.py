@@ -4,6 +4,8 @@ import time
 import datetime
 from astrbot.api import logger
 
+from .path_utils import parse_gid_list as _parse_gid_list
+
 def _parse_names(raw: str) -> list:
     if not raw:
         return []
@@ -147,6 +149,7 @@ class GreetingModule:
         self.morning_names = ["早安", "早上好", "起床"]
         self.night_names = ["晚安", "睡觉", "睡了"]
         self.time_format = "hms"
+        self.allowed_groups = []
 
         self.day_start_hour = 6
         self.morning_cutoff_hour = 12
@@ -222,6 +225,26 @@ class GreetingModule:
         if max_rep < 0:
             max_rep = 0
         self.max_repeat_remind = max_rep
+
+        # ★ 打卡系统群白名单：填了群号则只有这些群能打卡；留空 = 不限制群聊
+        #   （早安与晚安共用一个开关，不分开控制）
+        self.allowed_groups = _parse_gid_list(cfg.get("greeting_groups", ""))
+        # 兼容旧的两个分开开关：新键为空时回退用它们
+        if not self.allowed_groups:
+            legacy = (_parse_gid_list(cfg.get("greeting_morning_groups", ""))
+                      + _parse_gid_list(cfg.get("greeting_night_groups", "")))
+            self.allowed_groups = sorted(set(legacy))
+
+    def is_group_allowed(self, group_id, kind: str = "") -> bool:
+        """
+        判断某群是否允许打卡（早安与晚安共用一个开关）。
+        kind 参数保留兼容，不再区分早晚。
+        """
+        if not group_id:
+            return True
+        if not self.allowed_groups:
+            return True
+        return str(group_id) in self.allowed_groups
 
         morning = self._parse_messages(cfg.get("greeting_morning_messages", []))
         if morning:

@@ -49,7 +49,53 @@ def parse_group_block_keywords(raw) -> dict:
     return result
 
 
+def parse_gid_whitelist(raw) -> list:
+    """
+    解析「允许使用的群号」配置，返回去重后的字符串列表。
+    统一支持换行 / 英文逗号 / 中文逗号 / 顿号 / 分号 / 空格分隔
+    （规范：每个群用英文逗号隔开，这里同时兼容其他写法）。
+    忽略空内容、非数字内容与 # 注释。
+    """
+    import re as _re
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        chunks = [str(x) for x in raw if isinstance(x, str)]
+    else:
+        chunks = [str(raw)]
+    out, seen = [], set()
+    for chunk in chunks:
+        for line in chunk.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            for piece in _re.split(r"[,，、;；\s]+", line):
+                gid = piece.strip()
+                if not gid or not gid.isdigit():
+                    continue
+                if gid in seen:
+                    continue
+                seen.add(gid)
+                out.append(gid)
+    return out
+
+
+def group_allowed(group_id: str, allowed: list) -> bool:
+    """
+    统一的白名单判断：
+      · allowed 为空 -> 不限制群聊（放行）
+      · allowed 非空 -> 只有名单里的群放行
+    这样「不填写就是不限制群聊」，填了就是白名单。
+    """
+    if not group_id:
+        return True
+    if not allowed:
+        return True
+    return str(group_id) in [str(x) for x in allowed]
+
+
 def is_group_allowed(group_id: str, mode: str, whitelist: list, blacklist: list) -> bool:
+    """旧接口，保留兼容（mode/whitelist/blacklist 形式）"""
     if not group_id:
         return True
     mode = (mode or "off").strip().lower()

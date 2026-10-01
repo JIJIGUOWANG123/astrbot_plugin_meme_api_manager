@@ -21,6 +21,8 @@ import datetime
 import threading
 from astrbot.api import logger
 
+from .path_utils import parse_gid_list as _parse_gid_list
+
 # ★ 模块级全局锁，防止多实例并发覆盖
 _GLOBAL_NEWS_LOCK = threading.Lock()
 
@@ -87,6 +89,9 @@ class DailyNewsModule:
         self.last_push = {}
         # 主动推送用：{group_id: unified_msg_origin}
         self.umos = {}
+        # 后台「读报推送群号」名单
+        self.enabled_groups = []
+        self.use_backend_groups = False
 
         self._load_state()
 
@@ -105,6 +110,38 @@ class DailyNewsModule:
         except Exception:
             itv = 30
         self.interval = max(10, itv)
+
+        # 后台直接指定「开启读报推送的群号」：填了就以这里为准，群里也能继续用指令开关
+        self.enabled_groups = _parse_gid_list(cfg.get("daily_news_groups", ""))
+        self.use_backend_groups = bool(self.enabled_groups)
+        if self.use_backend_groups:
+            self._sync_backend_groups()
+
+    def _sync_backend_groups(self):
+        """把后台填写的群号同步为「已开启」，并关闭未在名单里的群（群自定义时间保留）。"""
+        with _GLOBAL_NEWS_LOCK:
+            self._load_state()
+            changed = False
+            for gid in self.enabled_groups:
+                cfg = self.groups.get(gid)
+                if not isinstance(cfg, dict):
+                    cfg = {"on": False, "time": ""}
+                if not cfg.get("on"):
+                    cfg["on"] = True
+                    changed = True
+                cfg.setdefault("time", "")
+                self.groups[gid] = cfg
+            for gid, cfg in list(self.groups.items()):
+                if gid in self.enabled_groups:
+                    continue
+                if isinstance(cfg, dict) and cfg.get("on"):
+                    cfg["on"] = False
+                    changed = True
+            if changed:
+                self._save_state()
+                logger.info(
+                    f"[daily_news] 已按后台配置同步读报群：{len(self.enabled_groups)} 个"
+                )
 
     # ============================================================
     # 状态持久化（加锁由调用方保证）
@@ -190,6 +227,11 @@ class DailyNewsModule:
             cfg["on"] = bool(on)
             cfg.setdefault("time", "")
             self.groups[gid] = cfg
+            # 同步内存里的后台群名单，避免同一次运行内两边不一致
+            if on and gid not in self.enabled_groups:
+                self.enabled_groups.append(gid)
+            elif not on and gid in self.enabled_groups:
+                self.enabled_groups.remove(gid)
             self._save_state()
 
     def set_group_time(self, group_id, hhmm: str) -> bool:

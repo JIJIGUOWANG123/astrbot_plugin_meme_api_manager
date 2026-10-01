@@ -1,3 +1,4 @@
+from .group_filter import (parse_gid_whitelist, group_allowed, is_group_allowed, parse_line_list as _parse_lines)
 import os
 import json
 import time
@@ -114,6 +115,7 @@ class HusbandModule:
         self.data_path = data_path
         self.trigger_names = ["今日老公", "老公"]
         self.enable = True
+        self.allowed_groups = []
         self.group_mode = "off"
         self.group_whitelist = []
         self.group_blacklist = []
@@ -126,6 +128,9 @@ class HusbandModule:
         names = _parse_names(raw)
         self.trigger_names = names if names else ["今日老公"]
 
+        # ★ 群白名单：填了群号则只有这些群可用；留空 = 不限制群聊
+        self.allowed_groups = parse_gid_whitelist(cfg.get("husband_groups", ""))
+        # 兼容旧的黑/白名单配置（未填新白名单时仍按旧逻辑生效）
         self.group_mode = str(cfg.get("husband_group_mode", "off") or "off").strip().lower()
         if self.group_mode not in ("off", "whitelist", "blacklist"):
             self.group_mode = "off"
@@ -151,15 +156,14 @@ class HusbandModule:
         except Exception:
             pass
 
-    def _is_group_allowed(self, group_id: str) -> bool:
-        if not group_id:
-            return True
-        if self.group_mode == "whitelist":
-            return group_id in self.group_whitelist
-        if self.group_mode == "blacklist":
-            return group_id not in self.group_blacklist
-        return True
-
+    def _is_group_allowed(self, group_id) -> bool:
+        """群白名单：填了群号则只有这些群可用；留空 = 不限制群聊"""
+        if self.allowed_groups:
+            return group_allowed(group_id, self.allowed_groups)
+        # 未填新白名单：回退到旧的黑/白名单逻辑
+        return is_group_allowed(
+            group_id, self.group_mode, self.group_whitelist, self.group_blacklist
+        )
     def match_trigger(self, text: str) -> bool:
         if not self.enable:
             return False

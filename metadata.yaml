@@ -1,6 +1,6 @@
 name: astrbot_plugin_meme_api_manager
 display_name: "鸡鸡娱乐系统"
-desc: "接口系统 + 每日运势 + 今日老公 + 今日人品 + 早安晚安 + Minecraft Java版检测 + 电脑状态 + 每日定时状态推送 + 每日读报 + 自定义词库 + 早晚安打卡排行 + 每日签到 + 偷积分 + 银行系统 + 坐骑商店 + 打工系统 + 整点报时 + 简约菜单系统"
+desc: "接口系统 + 每日运势 + 今日老公 + 今日人品 + 早安晚安 + Minecraft Java版检测 + 电脑状态 + 每日定时状态推送 + 每日读报 + 自定义词库 + 早晚安打卡排行 + 每日签到 + 偷积分 + 银行系统 + 坐骑商店 + 打工系统 + 整点报时 + 群员管理 + 数据备份 + 简约菜单系统"
 version: "1.7.1"
 author: "chicken butt"
 repo: "https://github.com/wanglaoji123/astrbot_plugin_meme_api_manager"

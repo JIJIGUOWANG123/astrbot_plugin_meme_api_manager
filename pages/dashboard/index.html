@@ -64,6 +64,9 @@
         <div class="nav-item" data-view="word">
           <span class="nav-icon">📚</span><span>词库系统</span>
         </div>
+        <div class="nav-item" data-view="status">
+          <span class="nav-icon">🖥️</span><span>电脑状态</span>
+        </div>
         <div class="nav-item" data-view="admin">
           <span class="nav-icon">🔧</span><span>管理系统</span>
         </div>
@@ -112,12 +115,12 @@
     </div>
   </div>
 
-  <!-- Backup Modal -->
-  <div class="modal-overlay" id="backupModal">
+  <!-- Export Modal -->
+  <div class="modal-overlay" id="exportModal">
     <div class="modal">
       <div class="modal-header">
-        <h3>💾 导出 / 备份数据</h3>
-        <button class="modal-close" id="closeBackupModal">&times;</button>
+        <h3>💾 导出数据</h3>
+        <button class="modal-close" id="closeExportModal">&times;</button>
       </div>
 
       <div class="backup-section">
@@ -147,10 +150,26 @@
         <div class="backup-files" id="backupFiles">读取中...</div>
       </div>
 
+      <div class="backup-result" id="backupResult"></div>
+
+      <div class="modal-footer">
+        <button class="btn btn-muted" id="closeExportBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📥 导入数据</h3>
+        <button class="modal-close" id="closeImportModal">&times;</button>
+      </div>
+
       <div class="backup-section">
-        <div class="backup-label">📥 导入 / 还原数据</div>
+        <div class="backup-label">从备份目录或备份包还原</div>
         <div class="backup-hint">
-          填入备份目录或导出的 JSON 备份包路径。导入前会<b>自动备份当前数据</b>，
+          填入备份目录，或「导出数据」下载的 JSON 备份包路径。导入前会<b>自动备份当前数据</b>，
           可随时回退；只写入本插件的数据文件，其余文件一律忽略。
         </div>
         <input type="text" id="importSourceInput" placeholder="例如：D:\backup\astrbot_plugin_meme_api_manager_20261001_120000" />
@@ -165,10 +184,10 @@
         <div class="backup-files" id="importPreview" style="margin-top:10px"></div>
       </div>
 
-      <div class="backup-result" id="backupResult"></div>
+      <div class="backup-result" id="importResult"></div>
 
       <div class="modal-footer">
-        <button class="btn btn-muted" id="closeBackupBtn">关闭</button>
+        <button class="btn btn-muted" id="closeImportBtn">关闭</button>
       </div>
     </div>
   </div>

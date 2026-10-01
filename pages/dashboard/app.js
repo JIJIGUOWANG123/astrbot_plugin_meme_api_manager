@@ -86,6 +86,16 @@ async function tryFetchJSON(url, options = {}) {
 // 配置接口候选 URL（GET / POST 共用）
 // 后端通过 context.register_web_api 注册的路由是 /<PLUGIN_ID>/<action>，
 // 在 AstrBot 面板中经 /api/plug/ 分发命中；因此兜底只能用这一种形态。
+// 写操作请求头：配置了访问令牌时自动携带 X-Plugin-Token
+function authHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  try {
+    const tk = (CONFIG && CONFIG.web_admin_token) || "";
+    if (tk) h["X-Plugin-Token"] = tk;
+  } catch (e) { /* 忽略 */ }
+  return h;
+}
+
 function buildRouteUrls(action) {
   return [
     `/${PLUGIN_ID}/${action}`,                     // 直接命中注册路由
@@ -219,7 +229,7 @@ async function saveConfig(partial) {
       const r = await fetch(url, {
         method: "POST",
         credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify(partial),
       });
       if (!r.ok) {
@@ -343,17 +353,19 @@ const VIEWS = {
   meme: {
     title: "接口系统",
     groups: [
+      { title: "功能总开关", keys: ["meme_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["meme_groups"] },
       { title: "指令配置", keys: ["cmd_meme_image", "cmd_meme_video"] },
+      { title: "每群屏蔽关键词", keys: ["group_block_keywords"] },
       { title: "基础配置", keys: ["cmd_list", "cmd_add", "cmd_del", "cmd_save", "default_key"] },
       { title: "自定义接口列表", keys: ["api_list"] },
-      { title: "每群屏蔽关键词", keys: ["group_block_keywords"] },
     ],
   },
   mc: {
     title: "MC 系统",
     groups: [
-      { title: "指令配置", keys: ["cmd_minecraft", "cmd_mc_auto", "cmd_mc_test"] },
       { title: "功能开关", keys: ["minecraft_enable"] },
+      { title: "指令配置", keys: ["cmd_minecraft", "cmd_mc_auto", "cmd_mc_test"] },
       { title: "检测参数", keys: ["minecraft_check_interval", "minecraft_auto_groups"] },
       { title: "测试推送", keys: ["minecraft_test_groups"] },
     ],
@@ -361,8 +373,9 @@ const VIEWS = {
   greeting: {
     title: "打卡系统",
     groups: [
-      { title: "指令配置", keys: ["cmd_greeting_morning", "cmd_greeting_night", "cmd_greeting_rank", "cmd_greeting_stats"] },
       { title: "功能开关", keys: ["greeting_enable"] },
+      { title: "允许打卡的群号（留空=不限群）", keys: ["greeting_groups"] },
+      { title: "指令配置", keys: ["cmd_greeting_morning", "cmd_greeting_night", "cmd_greeting_rank", "cmd_greeting_stats"] },
       { title: "时间与规则", keys: ["greeting_time_format", "greeting_day_start_hour", "greeting_morning_cutoff_hour", "greeting_night_cutoff_hour", "greeting_night_cutoff_minute", "greeting_min_awake_seconds", "greeting_max_repeat_remind"] },
       { title: "起床提示语", keys: ["greeting_morning_messages"] },
       { title: "睡觉提示语", keys: ["greeting_night_messages"] },
@@ -372,14 +385,16 @@ const VIEWS = {
     title: "签到系统",
     groups: [
       { title: "功能开关", keys: ["checkin_enable"] },
+      { title: "允许签到的群号（留空=不限群）", keys: ["checkin_groups"] },
       { title: "指令配置", keys: ["checkin_trigger_names", "checkin_rank_trigger_names", "checkin_info_trigger_names"] },
-      { title: "群黑白名单", keys: ["checkin_group_mode", "checkin_group_whitelist", "checkin_group_blacklist"] },
+      { title: "全局允许使用的群号（留空=不限群）", keys: ["checkin_global_groups"] },
     ],
   },
   steal: {
     title: "偷积分",
     groups: [
       { title: "功能开关", keys: ["steal_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["steal_groups"] },
       { title: "指令与范围", keys: ["steal_trigger_names", "steal_min", "steal_max"] },
       { title: "概率与惩罚", keys: ["steal_success_rate", "steal_fail_punish_rate", "steal_punish_min", "steal_punish_max"] },
     ],
@@ -388,6 +403,7 @@ const VIEWS = {
     title: "银行",
     groups: [
       { title: "功能开关", keys: ["bank_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["bank_groups"] },
       { title: "指令配置", keys: ["bank_trigger_names", "bank_deposit_names", "bank_withdraw_names"] },
       { title: "利率与结算", keys: ["bank_interest_rate", "bank_interest_hour"] },
     ],
@@ -396,6 +412,7 @@ const VIEWS = {
     title: "坐骑系统",
     groups: [
       { title: "功能开关", keys: ["mount_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["mount_groups"] },
       { title: "指令配置", keys: ["mount_trigger_names", "mount_list_trigger_names", "mount_buy_trigger_names", "cmd_mount_add_names", "cmd_mount_del_names"] },
       { title: "坐骑列表", keys: ["mount_list"] },
     ],
@@ -404,6 +421,7 @@ const VIEWS = {
     title: "打工系统",
     groups: [
       { title: "功能开关", keys: ["job_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["job_groups"] },
       { title: "指令配置", keys: ["job_trigger_names", "job_info_trigger_names", "cmd_job_add_names", "cmd_job_del_names"] },
       { title: "工种列表", keys: ["job_list"] },
     ],
@@ -412,8 +430,8 @@ const VIEWS = {
     title: "今日运势",
     groups: [
       { title: "功能开关", keys: ["fortune_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["fortune_groups"] },
       { title: "指令配置", keys: ["fortune_trigger_names"] },
-      { title: "群黑白名单", keys: ["fortune_group_mode", "fortune_group_whitelist", "fortune_group_blacklist"] },
       { title: "运势内容列表", keys: ["fortune_list"] },
     ],
   },
@@ -421,22 +439,23 @@ const VIEWS = {
     title: "今日老公",
     groups: [
       { title: "功能开关", keys: ["husband_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["husband_groups"] },
       { title: "指令配置", keys: ["husband_trigger_names"] },
-      { title: "群黑白名单", keys: ["husband_group_mode", "husband_group_whitelist", "husband_group_blacklist"] },
     ],
   },
   luck: {
     title: "今日人品",
     groups: [
       { title: "功能开关", keys: ["luck_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["luck_groups"] },
       { title: "指令配置", keys: ["luck_trigger_names"] },
-      { title: "群黑白名单", keys: ["luck_group_mode", "luck_group_whitelist", "luck_group_blacklist"] },
     ],
   },
   news: {
     title: "每日读报",
     groups: [
       { title: "功能开关", keys: ["daily_news_enable"] },
+      { title: "读报推送群号（留空=不限群）", keys: ["daily_news_groups"] },
       { title: "定时推送", keys: ["daily_news_time", "daily_news_interval"] },
       { title: "指令配置", keys: ["cmd_daily_news", "cmd_daily_news_on", "cmd_daily_news_off", "cmd_daily_news_time", "cmd_daily_news_list"] },
     ],
@@ -445,6 +464,7 @@ const VIEWS = {
     title: "整点报时",
     groups: [
       { title: "功能开关", keys: ["hourly_chime_enable"] },
+      { title: "报时群号（留空=不限群）", keys: ["hourly_chime_groups"] },
       { title: "参数配置", keys: ["hourly_chime_interval", "hourly_chime_template"] },
       { title: "指令配置", keys: ["cmd_chime_on", "cmd_chime_off", "cmd_chime_status", "cmd_chime_hours", "cmd_chime_text", "cmd_chime_list", "cmd_chime_test"] },
     ],
@@ -453,23 +473,36 @@ const VIEWS = {
     title: "词库系统",
     groups: [
       { title: "功能开关", keys: ["word_reply_enable"] },
+      { title: "允许使用的群号（留空=不限群）", keys: ["word_reply_groups"] },
       { title: "指令配置", keys: ["cmd_word_add", "cmd_word_del", "cmd_word_list"] },
       { title: "词库列表", keys: ["word_reply_list"] },
-      { title: "群黑白名单", keys: ["word_reply_group_mode", "word_reply_group_whitelist", "word_reply_group_blacklist"] },
     ],
   },
+  status: {
+    title: "电脑状态",
+    groups: [
+      { title: "输出预览与测试", type: "status-panel" },
+      { title: "功能总开关", keys: ["status_enable"] },
+      { title: "允许查询的群号（留空=不限群）", keys: ["status_groups"] },
+      { title: "定时推送 · 推送的群号（一行一个，只填群号）", keys: ["daily_status_push_groups"] },
+      { title: "指令配置", keys: ["cmd_status"] },
+      { title: "显示内容", keys: ["cmd_status_title", "cmd_status_tail", "cmd_status_show_basic", "cmd_status_show_uptime", "cmd_status_show_cpu", "cmd_status_show_mem", "cmd_status_show_disk"] },
+      { title: "定时推送 · 推送间隔（分钟）", keys: ["daily_status_push_interval_min"] },
+      { title: "定时推送 · 指令配置", keys: ["cmd_daily_push_on", "cmd_daily_push_off", "cmd_daily_push_time", "cmd_daily_push_list"] },
+    ],
+  },
+
   admin: {
     title: "管理系统",
     groups: [
       { title: "指令配置", keys: ["cmd_enable", "cmd_disable", "cmd_enable_feature", "cmd_disable_feature", "cmd_feature_status"] },
       { title: "必须艾特机器人", keys: ["must_at_bot", "cmd_must_at_bot_on", "cmd_must_at_bot_off", "cmd_must_at_bot_status"] },
       { title: "管理员设置", keys: ["cmd_view_admin", "cmd_refresh_admin", "cmd_add_admin", "cmd_del_admin", "cmd_admin_list", "plugin_admins", "group_admin_cache_ttl"] },
-      { title: "群黑白名单", keys: ["group_mode", "group_whitelist", "group_blacklist", "disabled_groups"] },
+      { title: "接口安全（Web 写操作令牌）", keys: ["web_admin_token"] },
+      { title: "全局允许使用的群号（留空=不限群）", keys: ["global_groups"] },
+      { title: "已关闭的群", keys: ["disabled_groups"] },
       { title: "群员管理（踢出 / 禁言 / 拉黑）", keys: ["moderation_enable", "mute_duration", "blacklist_default_action", "member_blacklist"] },
       { title: "群员管理指令", keys: ["cmd_kick", "cmd_mute", "cmd_unmute", "cmd_blacklist", "cmd_unblacklist", "cmd_blacklist_list"] },
-      { title: "电脑状态 · 输出预览与测试", type: "status-panel" },
-      { title: "电脑状态", keys: ["cmd_status", "cmd_status_title", "cmd_status_tail", "cmd_status_show_basic", "cmd_status_show_uptime", "cmd_status_show_cpu", "cmd_status_show_mem", "cmd_status_show_disk"] },
-      { title: "每日定时状态推送", keys: ["daily_status_push_enable", "daily_status_push_time", "daily_status_push_interval", "cmd_daily_push_on", "cmd_daily_push_off", "cmd_daily_push_time", "cmd_daily_push_list"] },
     ],
   },
 };
@@ -594,7 +627,7 @@ async function onTestPush() {
           const r = await fetch(url, {
             method: "POST",
             credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders({ "Content-Type": "application/json" }),
             body: JSON.stringify(payload),
           });
           if (!r.ok) { lastErr = new Error(`HTTP ${r.status}`); continue; }
@@ -659,7 +692,7 @@ async function backupRequest(action, { method = "GET", body = null } = {}) {
     try {
       const opt = { method, credentials: "same-origin" };
       if (method === "POST") {
-        opt.headers = { "Content-Type": "application/json" };
+        opt.headers = authHeaders({ "Content-Type": "application/json" });
         opt.body = JSON.stringify(body || {});
       }
       const r = await fetch(url, opt);
@@ -672,8 +705,9 @@ async function backupRequest(action, { method = "GET", body = null } = {}) {
   throw lastErr || new Error("请求失败");
 }
 
-async function openBackupModal() {
-  const modal = $("backupModal");
+// 导出弹窗：展示默认备份目录 + 数据文件清单
+async function openExportModal() {
+  const modal = $("exportModal");
   if (!modal) return;
   modal.classList.add("open");
   setBackupResult("");
@@ -704,8 +738,22 @@ async function openBackupModal() {
   }
 }
 
-function closeBackupModal() {
-  const modal = $("backupModal");
+function closeExportModal() {
+  const modal = $("exportModal");
+  if (modal) modal.classList.remove("open");
+}
+
+// 导入弹窗：清空上一次的结果，避免误导
+function openImportModal() {
+  const modal = $("importModal");
+  if (!modal) return;
+  modal.classList.add("open");
+  setImportPreview("");
+  setBackupResult("");
+}
+
+function closeImportModal() {
+  const modal = $("importModal");
   if (modal) modal.classList.remove("open");
 }
 
@@ -780,6 +828,13 @@ function setImportPreview(msg, type) {
   el.style.color = type === "err" ? "var(--danger)" : "var(--text-secondary)";
 }
 
+function setImportResult(msg, type) {
+  const el = $("importResult");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.className = `backup-result${type ? ` ${type}` : ""}`;
+}
+
 function renderImportPreview(res) {
   const el = $("importPreview");
   if (!el || !res) return;
@@ -834,7 +889,7 @@ async function onDoImport() {
 
   const btn = $("doImportBtn");
   if (btn) { btn.disabled = true; btn.textContent = "导入中..."; }
-  setImportPreview("正在导入，请稍候...");
+  setImportResult("正在导入，请稍候...");
   try {
     const res = await backupRequest("importData", { method: "POST", body: { source, mode } });
     if (res && res.ok) {
@@ -842,16 +897,20 @@ async function onDoImport() {
       const sk = (res.skipped || []).length;
       let text = `✅ ${res.msg}`;
       if (res.backup_dir) text += `\n导入前备份：${res.backup_dir}`;
+      if (sk) {
+        const names = (res.skipped || []).map(x => x.file).join("、");
+        text += `\n跳过：${names}`;
+      }
       text += `\n\n💡 数据已写入，刷新页面即可看到最新内容`;
-      setImportPreview(text, "ok");
+      setImportResult(text, "ok");
       toast(`✅ 已导入 ${n} 个文件${sk ? `，跳过 ${sk} 个` : ""}`);
     } else {
-      setImportPreview(`❌ ${(res && res.msg) || "导入失败"}`, "err");
+      setImportResult(`❌ ${(res && res.msg) || "导入失败"}`, "err");
       toast("导入失败", "error");
     }
   } catch (e) {
     console.warn("[backup] 导入失败:", e);
-    setImportPreview(`❌ 导入失败：${(e && e.message) || e}`, "err");
+    setImportResult(`❌ 导入失败：${(e && e.message) || e}`, "err");
     toast("导入失败", "error");
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = "确认导入"; }
@@ -865,7 +924,7 @@ function renderView(viewKey) {
   const view = VIEWS[viewKey];
   if (!view) return;
   $("pageTitle").textContent = view.title;
-  $("topbarActions").innerHTML = `<button class="btn btn-muted" id="backupOpenBtn">💾 导出数据</button><button class="btn btn-primary" id="saveAllBtn">💾 保存全部</button>`;
+  $("topbarActions").innerHTML = `<button class="btn btn-info" id="exportOpenBtn">💾 导出数据</button><button class="btn btn-info" id="importOpenBtn">📥 导入数据</button><button class="btn btn-primary" id="saveAllBtn">💾 保存全部</button>`;
 
   let html = "";
   for (const group of view.groups) {
@@ -897,8 +956,10 @@ function renderView(viewKey) {
   $("content").innerHTML = html;
   const saveBtn = $("saveAllBtn");
   if (saveBtn) saveBtn.addEventListener("click", onSaveAll);
-  const backupBtn = $("backupOpenBtn");
-  if (backupBtn) backupBtn.addEventListener("click", openBackupModal);
+  const exportBtn = $("exportOpenBtn");
+  if (exportBtn) exportBtn.addEventListener("click", openExportModal);
+  const importBtn = $("importOpenBtn");
+  if (importBtn) importBtn.addEventListener("click", openImportModal);
 
   const refreshBtn = $("refreshStatusBtn");
   if (refreshBtn) refreshBtn.addEventListener("click", fetchStatusPreview);
@@ -1072,23 +1133,35 @@ async function boot() {
 const retryBtn = $("retryBtn");
 if (retryBtn) retryBtn.addEventListener("click", () => boot());
 
-// 备份弹窗事件
-const _bkClose = $("closeBackupModal");
-if (_bkClose) _bkClose.addEventListener("click", closeBackupModal);
-const _bkClose2 = $("closeBackupBtn");
-if (_bkClose2) _bkClose2.addEventListener("click", closeBackupModal);
+// 导出弹窗事件
+const _exClose = $("closeExportModal");
+if (_exClose) _exClose.addEventListener("click", closeExportModal);
+const _exClose2 = $("closeExportBtn");
+if (_exClose2) _exClose2.addEventListener("click", closeExportModal);
 const _bkDo = $("doBackupBtn");
 if (_bkDo) _bkDo.addEventListener("click", onDoBackup);
 const _bkDl = $("doDownloadBtn");
 if (_bkDl) _bkDl.addEventListener("click", onDownloadBackup);
+const _exOverlay = $("exportModal");
+if (_exOverlay) {
+  _exOverlay.addEventListener("click", (e) => {
+    if (e.target === _exOverlay) closeExportModal();
+  });
+}
+
+// 导入弹窗事件
+const _imClose = $("closeImportModal");
+if (_imClose) _imClose.addEventListener("click", closeImportModal);
+const _imClose2 = $("closeImportBtn");
+if (_imClose2) _imClose2.addEventListener("click", closeImportModal);
 const _bkImpPrev = $("doImportPreviewBtn");
 if (_bkImpPrev) _bkImpPrev.addEventListener("click", onImportPreview);
 const _bkImp = $("doImportBtn");
 if (_bkImp) _bkImp.addEventListener("click", onDoImport);
-const _bkOverlay = $("backupModal");
-if (_bkOverlay) {
-  _bkOverlay.addEventListener("click", (e) => {
-    if (e.target === _bkOverlay) closeBackupModal();
+const _imOverlay = $("importModal");
+if (_imOverlay) {
+  _imOverlay.addEventListener("click", (e) => {
+    if (e.target === _imOverlay) closeImportModal();
   });
 }
 

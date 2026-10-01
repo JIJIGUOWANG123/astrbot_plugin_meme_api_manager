@@ -5,6 +5,8 @@ import datetime
 import threading
 from astrbot.api import logger
 
+from .path_utils import parse_gid_list as _parse_gid_list
+
 # ★ 新增：模块级全局锁，防止多实例并发覆盖
 _GLOBAL_CHIME_LOCK = threading.Lock()
 
@@ -46,6 +48,9 @@ class HourlyChimeModule:
         self.groups = {}
         self.last_chime = {}
         self.umos = {}   # {group_id: unified_msg_origin}
+        # 后台「报时群号」名单
+        self.enabled_groups = []
+        self.use_backend_groups = False
         self._load_state()
 
     # ============================================================
@@ -64,6 +69,37 @@ class HourlyChimeModule:
             cfg.get("hourly_chime_template", "🕐 现在是 {hour} 点整，整点报时！")
             or "🕐 现在是 {hour} 点整，整点报时！"
         ).strip()
+
+        # 后台直接指定「开启报时的群号」：填了就以这里为准，群里也能继续用指令开关
+        self.enabled_groups = _parse_gid_list(cfg.get("hourly_chime_groups", ""))
+        self.use_backend_groups = bool(self.enabled_groups)
+        if self.use_backend_groups:
+            self._sync_backend_groups()
+
+    def _sync_backend_groups(self):
+        """把后台填写的群号同步为「已开启」，并关闭未在名单里的群。"""
+        with _GLOBAL_CHIME_LOCK:
+            self._load_state()
+            changed = False
+            for gid in self.enabled_groups:
+                cfg = self.groups.get(gid)
+                if not isinstance(cfg, dict):
+                    cfg = {"on": False, "template": "", "hours": []}
+                if not cfg.get("on"):
+                    cfg["on"] = True
+                    changed = True
+                self.groups[gid] = cfg
+            for gid, cfg in list(self.groups.items()):
+                if gid in self.enabled_groups:
+                    continue
+                if isinstance(cfg, dict) and cfg.get("on"):
+                    cfg["on"] = False
+                    changed = True
+            if changed:
+                self._save_state()
+                logger.info(
+                    f"[hourly_chime] 已按后台配置同步报时群：{len(self.enabled_groups)} 个"
+                )
 
     # ============================================================
     # 状态持久化（加锁由调用方保证）
@@ -139,6 +175,11 @@ class HourlyChimeModule:
                 cfg = {"on": False, "template": "", "hours": []}
             cfg["on"] = bool(on)
             self.groups[gid] = cfg
+            # 同步内存里的后台群名单，避免同一次运行内两边不一致
+            if on and gid not in self.enabled_groups:
+                self.enabled_groups.append(gid)
+            elif not on and gid in self.enabled_groups:
+                self.enabled_groups.remove(gid)
             self._save_state()
 
     def get_group_hours(self, group_id) -> list:

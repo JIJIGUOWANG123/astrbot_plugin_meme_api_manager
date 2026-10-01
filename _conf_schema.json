@@ -1,4 +1,70 @@
 {
+    "greeting_groups": {
+        "description": "【打卡系统】允许打卡的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空 = 不限制群聊；填写后只有这些群能打卡（早安与晚安共用一个开关）。多个群号用英文逗号分隔，例如：123456,789012"
+    },
+    "meme_enable": {
+        "description": "【接口系统】功能总开关",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后本群/所有群都无法调用接口（含接口列表、图片接口、视频接口）。"
+    },
+    "meme_groups": {
+        "description": "【接口系统】允许使用的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空 = 不限制群聊；填写后只有这些群能调用接口。多个群号用英文逗号分隔，例如：123456,789012"
+    },
+    "status_enable": {
+        "description": "【电脑状态】功能总开关",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后整个电脑状态功能停用：既不能查询电脑状态，也不会定时推送。"
+    },
+    "status_groups": {
+        "description": "【电脑状态】允许查询的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空 = 不限制群聊；填写后只有这些群能查电脑状态。多个群号用英文逗号分隔，例如：123456,789012"
+    },
+    "daily_status_push_interval_min": {
+        "description": "【定时状态推送】推送间隔（分钟）",
+        "type": "string",
+        "default": "60",
+        "hint": "每隔多少分钟推送一次机器人运行状态，例如 60 = 每 60 分钟推一次。最小 1 分钟；单个群可用指令单独改间隔。"
+    },
+    "daily_status_push_groups": {
+        "description": "【定时状态推送】推送的群号（一行一个，只填群号）",
+        "type": "text",
+        "default": "",
+        "hint": "一行一个群号，例如：\n123456\n789012\n不要写间隔（间隔由上面的「推送间隔」统一决定）。留空 = 不限制群（沿用群里指令设置的群）。"
+    },
+    "cmd_daily_push_on": {
+        "description": "【定时状态推送】开启推送指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送开",
+        "hint": "可带群号远程开启：状态推送开 123456"
+    },
+    "cmd_daily_push_off": {
+        "description": "【定时状态推送】关闭推送指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送关",
+        "hint": "可带群号远程关闭：状态推送关 123456"
+    },
+    "cmd_daily_push_time": {
+        "description": "【定时状态推送】设置推送间隔指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送间隔",
+        "hint": "用法：状态推送间隔 60 或 状态推送间隔 群号 60（单位分钟）；不带参数则查询"
+    },
+    "cmd_daily_push_list": {
+        "description": "【定时状态推送】查看推送列表指令（多个用英文逗号分隔）",
+        "type": "string",
+        "default": "状态推送列表",
+        "hint": "显示总开关、默认时间与各群推送时间"
+    },
     "cmd_main": {
         "description": "【菜单】总菜单指令",
         "type": "string",
@@ -53,7 +119,6 @@
         "default": "管理员指令",
         "hint": "显示所有管理员功能"
     },
-
     "cmd_list": {
         "description": "【接口系统】接口列表指令",
         "type": "string",
@@ -130,7 +195,6 @@
         "default": "",
         "hint": "一行一条，格式：群号: 关键词1,关键词2"
     },
-
     "cmd_minecraft": {
         "description": "【MC系统】Minecraft Java 版本查询指令",
         "type": "string",
@@ -173,7 +237,6 @@
         "default": "",
         "hint": "只推送给这里填的群。留空则推送给所有已开启自动检测的群"
     },
-
     "cmd_greeting_morning": {
         "description": "【打卡系统】早安指令（多个用英文逗号分隔）",
         "type": "string",
@@ -304,7 +367,6 @@
             }
         }
     },
-
     "checkin_enable": {
         "description": "【签到系统】启用每日签到",
         "type": "bool",
@@ -329,25 +391,6 @@
         "default": "签到统计,我的签到,查询签到",
         "hint": "任意一个都能触发。不跟参数=查自己；@某人 或 加QQ号=查别人"
     },
-    "checkin_group_mode": {
-        "description": "【签到系统】签到群黑白名单模式",
-        "type": "string",
-        "default": "off",
-        "hint": "off / whitelist / blacklist"
-    },
-    "checkin_group_whitelist": {
-        "description": "【签到系统】签到群白名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-    "checkin_group_blacklist": {
-        "description": "【签到系统】签到群黑名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-
     "steal_enable": {
         "description": "【签到系统-偷积分】启用偷积分功能",
         "type": "bool",
@@ -396,7 +439,6 @@
         "default": "100",
         "hint": "被对方反拿走的最多积分"
     },
-
     "bank_enable": {
         "description": "【签到系统-银行】启用银行功能",
         "type": "bool",
@@ -609,25 +651,6 @@
             }
         }
     },
-    "fortune_group_mode": {
-        "description": "【每日系列】运势群黑白名单模式",
-        "type": "string",
-        "default": "off",
-        "hint": "off / whitelist / blacklist"
-    },
-    "fortune_group_whitelist": {
-        "description": "【每日系列】运势群白名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-    "fortune_group_blacklist": {
-        "description": "【每日系列】运势群黑名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-
     "husband_trigger_names": {
         "description": "【每日系列】今日老公触发词（多个用英文逗号分隔）",
         "type": "string",
@@ -640,25 +663,6 @@
         "default": true,
         "hint": "关闭后老公触发词不再响应"
     },
-    "husband_group_mode": {
-        "description": "【每日系列】老公群黑白名单模式",
-        "type": "string",
-        "default": "off",
-        "hint": "off / whitelist / blacklist"
-    },
-    "husband_group_whitelist": {
-        "description": "【每日系列】老公群白名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-    "husband_group_blacklist": {
-        "description": "【每日系列】老公群黑名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-
     "luck_trigger_names": {
         "description": "【每日系列】今日人品触发词（多个用英文逗号分隔）",
         "type": "string",
@@ -671,25 +675,6 @@
         "default": true,
         "hint": "关闭后人品触发词不再响应"
     },
-    "luck_group_mode": {
-        "description": "【每日系列】人品群黑白名单模式",
-        "type": "string",
-        "default": "off",
-        "hint": "off / whitelist / blacklist"
-    },
-    "luck_group_whitelist": {
-        "description": "【每日系列】人品群白名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-    "luck_group_blacklist": {
-        "description": "【每日系列】人品群黑名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-
     "cmd_status": {
         "description": "【管理系统】查看运行状态指令（多个用英文逗号分隔）",
         "type": "string",
@@ -737,48 +722,6 @@
         "type": "bool",
         "default": true,
         "hint": "最多显示 4 个磁盘，避免刷屏"
-    },
-    "daily_status_push_enable": {
-        "description": "【每日状态推送】总开关",
-        "type": "bool",
-        "default": false,
-        "hint": "打开后，已开启推送的群会在设定时间收到机器人运行状态"
-    },
-    "daily_status_push_time": {
-        "description": "【每日状态推送】全局默认推送时间",
-        "type": "string",
-        "default": "09:00",
-        "hint": "24 小时制 HH:MM（分钟级），例如 09:00、21:30；单个群可用指令单独改时间"
-    },
-    "daily_status_push_interval": {
-        "description": "【每日状态推送】后台检查间隔（秒）",
-        "type": "string",
-        "default": "30",
-        "hint": "默认 30 秒检查一次，最小 10 秒，一般不用改"
-    },
-    "cmd_daily_push_on": {
-        "description": "【每日状态推送】开启推送指令（多个用英文逗号分隔）",
-        "type": "string",
-        "default": "状态推送开",
-        "hint": "可带群号远程开启：状态推送开 123456"
-    },
-    "cmd_daily_push_off": {
-        "description": "【每日状态推送】关闭推送指令（多个用英文逗号分隔）",
-        "type": "string",
-        "default": "状态推送关",
-        "hint": "可带群号远程关闭：状态推送关 123456"
-    },
-    "cmd_daily_push_time": {
-        "description": "【每日状态推送】设置推送时间指令（多个用英文逗号分隔）",
-        "type": "string",
-        "default": "状态推送时间",
-        "hint": "用法：状态推送时间 09:00 或 状态推送时间 群号 09:00；不带参数则查询"
-    },
-    "cmd_daily_push_list": {
-        "description": "【每日状态推送】查看推送列表指令（多个用英文逗号分隔）",
-        "type": "string",
-        "default": "状态推送列表",
-        "hint": "显示总开关、默认时间与各群推送时间"
     },
     "daily_news_enable": {
         "description": "【每日读报】总开关",
@@ -984,31 +927,12 @@
         "default": "黑名单列表",
         "hint": "查看当前黑名单与各自的动作"
     },
-    "group_mode": {
-        "description": "【管理系统】群黑白名单模式",
-        "type": "string",
-        "default": "off",
-        "hint": "off / whitelist / blacklist"
-    },
-    "group_whitelist": {
-        "description": "【管理系统】群白名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
-    "group_blacklist": {
-        "description": "【管理系统】群黑名单",
-        "type": "text",
-        "default": "",
-        "hint": "一行一个群号"
-    },
     "disabled_groups": {
         "description": "【管理系统】已关闭娱乐系统的群号",
         "type": "text",
         "default": "",
         "hint": "一行一个群号"
     },
-
     "hourly_chime_enable": {
         "description": "【管理系统-整点报时】启用整点报时",
         "type": "bool",
@@ -1069,7 +993,6 @@
         "default": "整点报时测试",
         "hint": "格式：整点报时测试 [群号]，不跟群号=当前群。用于立即验证推送链路是否正常"
     },
-
     "cmd_word_add": {
         "description": "【词库系统】添加词库指令",
         "type": "string",
@@ -1119,22 +1042,88 @@
             }
         }
     },
-    "word_reply_group_mode": {
-        "description": "【词库系统】词库群黑白名单模式",
+    "hourly_chime_groups": {
+        "description": "【整点报时】开启报时的群号",
+        "type": "text",
+        "default": "",
+        "hint": "填写后只有这些群会整点报时；群内也能用指令单独开关。多个群号用换行或逗号分隔"
+    },
+    "daily_news_groups": {
+        "description": "【每日读报】开启读报推送的群号",
+        "type": "text",
+        "default": "",
+        "hint": "填写后只有这些群会收到读报推送；每群时间可用指令单独设置。多个群号用换行或逗号分隔"
+    },
+    "checkin_groups": {
+        "description": "【签到系统】允许签到的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空=不限群；填写后只有这些群能用签到。多个群号用换行或逗号分隔"
+    },
+    "steal_groups": {
+        "description": "【签到系统】允许偷积分的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空=不限群；填写后只有这些群能用神偷。多个群号用换行或逗号分隔"
+    },
+    "bank_groups": {
+        "description": "【签到系统】允许银行的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空=不限群；填写后只有这些群能用银行（含存/取）。多个群号用换行或逗号分隔"
+    },
+    "mount_groups": {
+        "description": "【签到系统】允许坐骑的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空=不限群；填写后只有这些群能用坐骑商店。多个群号用换行或逗号分隔"
+    },
+    "job_groups": {
+        "description": "【签到系统】允许打工的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空=不限群；填写后只有这些群能打工。多个群号用换行或逗号分隔"
+    },
+    "web_admin_token": {
+        "description": "【安全】配置/备份/导入等写操作的访问令牌（留空=仅依赖同源与面板登录防护）",
         "type": "string",
-        "default": "off",
-        "hint": "off / whitelist / blacklist"
+        "default": "",
+        "hint": "填写后，调用保存配置 / 备份 / 导入接口必须携带 X-Plugin-Token 头。不填则这些接口仅接受来自本机面板的同源请求。"
     },
-    "word_reply_group_whitelist": {
-        "description": "【词库系统】词库群白名单",
+    "global_groups": {
+        "description": "【全局】允许使用本插件的群号",
         "type": "text",
         "default": "",
-        "hint": "一行一个群号"
+        "hint": "留空 = 不限制群聊；填写后只有这些群能使用本插件。多个群号用英文逗号分隔，例如：123456,789012"
     },
-    "word_reply_group_blacklist": {
-        "description": "【词库系统】词库群黑名单",
+    "fortune_groups": {
+        "description": "【今日运势】允许使用的群号",
         "type": "text",
         "default": "",
-        "hint": "一行一个群号"
+        "hint": "留空 = 不限制群聊；填写后只有这些群能用运势。多个群号用英文逗号分隔"
+    },
+    "husband_groups": {
+        "description": "【今日老公】允许使用的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空 = 不限制群聊；填写后只有这些群能用今日老公。多个群号用英文逗号分隔"
+    },
+    "luck_groups": {
+        "description": "【今日人品】允许使用的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空 = 不限制群聊；填写后只有这些群能用人品。多个群号用英文逗号分隔"
+    },
+    "checkin_global_groups": {
+        "description": "【签到系统】全局允许使用的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空 = 不限制群聊；填写后只有这些群能用签到系统（作用于整个签到系统）。多个群号用英文逗号分隔"
+    },
+    "word_reply_groups": {
+        "description": "【词库系统】允许使用的群号",
+        "type": "text",
+        "default": "",
+        "hint": "留空 = 不限制群聊；填写后只有这些群能用词库。多个群号用英文逗号分隔"
     }
 }
